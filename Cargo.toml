@@ -4,3 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+chrono = "0.4.45"
+rust_decimal = { version = "1.43.0", features = ["macros"] }
+uuid = { version = "1.26.1",features = ["v4"] }
