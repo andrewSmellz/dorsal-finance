@@ -11,7 +11,7 @@ pub struct Holding{
 }
 
 impl Holding{
-    pub fn new(name: String, ticker: String, quantity: Decimal, value: Decimal) -> Self {
+    pub fn new(name: String, ticker: String, quantity: Decimal, cost_basis: Decimal) -> Self {
         Holding {
             name,
             ticker,
