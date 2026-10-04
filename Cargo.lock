@@ -409,6 +409,7 @@ name = "dorsal-finance"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "dotenvy",
  "rust_decimal",
  "sqlx",
  "time",
