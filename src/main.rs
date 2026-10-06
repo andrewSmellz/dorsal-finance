@@ -4,6 +4,9 @@ use tokio;
 
 mod models;
 mod db;
+mod queries;
+use models::account::Account;
+use crate::queries::account::make_account;
 
 #[tokio::main]
 async fn main() {
@@ -19,5 +22,6 @@ async fn main() {
     let time = OffsetDateTime::from_unix_timestamp(quote.timestamp).unwrap();
     println!("At {} the price of XEQT was {}", time, quote.close);
 
-
+    let my_account = Account::new("my account".to_string(), models::account::AccountKind::TFSA);
+    make_account(&pool, my_account).await.unwrap();
 }
