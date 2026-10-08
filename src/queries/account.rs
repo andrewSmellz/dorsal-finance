@@ -1,6 +1,8 @@
 use crate::models;
 use crate::Account;
 use sqlx::SqlitePool;
+use uuid::Uuid;
+use crate::models::account::AccountKind;
 
 pub async fn make_account(pool: &SqlitePool,account: Account) -> Result<(), sqlx::Error> {
     sqlx::query!(
@@ -13,4 +15,28 @@ pub async fn make_account(pool: &SqlitePool,account: Account) -> Result<(), sqlx
     .await?;
 
     Ok(())
+}
+
+pub async fn get_account(pool: &SqlitePool, account_name: String) -> Result<Option<Account>, sqlx::Error>{
+    sqlx::query_as!(
+    Account,
+    r#"SELECT id as "id!: Uuid",
+     name as "name!",
+     kind as "kind!: AccountKind"
+     FROM accounts WHERE name = ?"#,
+    account_name)
+.fetch_optional(pool)
+.await
+}
+
+pub async fn get_all_accounts(pool: &SqlitePool) -> Result<Vec<Account>, sqlx::Error>{
+    sqlx::query_as!(
+        Account,
+        r#"SELECT id as "id!: Uuid",
+            name as "name!",
+            kind as "kind!: AccountKind"
+            FROM accounts
+        "#
+    ).fetch_all(pool)
+    .await
 }
