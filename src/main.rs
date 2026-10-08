@@ -1,12 +1,14 @@
-use time::OffsetDateTime;
-use tokio;
-use yahoo_finance_api as yahoo;
-
 mod db;
 mod models;
 mod queries;
-use crate::queries::account::{get_account, get_all_accounts, make_account};
-use models::account::Account;
+
+use tokio;
+use time::OffsetDateTime;
+use yahoo_finance_api as yahoo;
+
+
+use models::{Account, AccountKind};
+use queries::account::{get_account, get_all_accounts, make_account};
 
 #[tokio::main]
 async fn main() {
@@ -22,11 +24,11 @@ async fn main() {
     // let time = OffsetDateTime::from_unix_timestamp(quote.timestamp).unwrap();
     // println!("At {} the price of XEQT was {}", time, quote.close);
 
-    // let your_account = Account::new("your account".to_string(), models::account::AccountKind::RRSP);
-    // make_account(&pool, your_account).await.unwrap();
+    let your_account = Account::new("our account".to_string(), AccountKind::Chequing);
+    make_account(&pool, your_account).await.unwrap();
 
-    // let my_account = get_account(&pool, "my account".to_string()).await.unwrap();
-    // println!("{:?}",my_account);
+    let my_account = get_account(&pool, "my account".to_string()).await.unwrap();
+    println!("{:?}",my_account);
 
     println!("{:?}",get_all_accounts(&pool).await.unwrap());
 }
