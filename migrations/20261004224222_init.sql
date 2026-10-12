@@ -1,6 +1,6 @@
 CREATE TABLE accounts (
     id    BLOB PRIMARY KEY,
-    name  TEXT NOT NULL,
+    name  TEXT NOT NULL UNIQUE,
     kind  TEXT NOT NULL CHECK (kind IN
           ('tfsa','rrsp','fhsa','unregistered','chequing','saving'))
 );

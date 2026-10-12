@@ -2,6 +2,7 @@ use chrono::{DateTime,Utc};
 use uuid::Uuid;
 use rust_decimal::Decimal;
 
+#[derive(Debug, sqlx::FromRow)]
 pub struct Transaction {
     pub id: Uuid,
     pub account_id: Uuid,
@@ -13,6 +14,8 @@ pub struct Transaction {
     pub note: Option<String>,
 }
 
+#[derive(Debug, Clone, sqlx::Type)]
+#[sqlx(rename_all = "lowercase")]
 pub enum TransactionKind{
     Deposit,
     Withdrawal,

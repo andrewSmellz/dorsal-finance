@@ -15,7 +15,7 @@ pub async fn make_account(pool: &SqlitePool,account: Account) -> Result<(), sqlx
     Ok(())
 }
 
-pub async fn get_account(pool: &SqlitePool, account_name: String) -> Result<Option<Account>, sqlx::Error>{
+pub async fn get_account_by_name(pool: &SqlitePool, account_name: String) -> Result<Option<Account>, sqlx::Error>{
     sqlx::query_as!(
     Account,
     r#"SELECT id as "id!: Uuid",
