@@ -1,6 +1,7 @@
 mod db;
 mod models;
 mod queries;
+mod utils;
 
 use tokio;
 use time::OffsetDateTime;
@@ -11,6 +12,8 @@ use rust_decimal::dec;
 use models::{Account, AccountKind, Transaction, TransactionKind};
 use queries::account::{get_account_by_name, get_all_accounts, make_account};
 use queries::transaction::{make_transaction, list_transactions};
+
+use crate::utils::balance::account_balance;
 
 #[tokio::main]
 async fn main() {
@@ -36,9 +39,10 @@ async fn main() {
 
     let account = get_account_by_name(&pool, "our account".into()).await.unwrap().unwrap();
 
-    let tx = Transaction::new(account.id, TransactionKind::Deposit, dec!(30.69))
-    .with_note("2nd deposit");
-    make_transaction(&pool, tx).await.unwrap();
+    let txs = list_transactions(&pool, account.id).await.unwrap();
+    println!("{:#?}",txs );
 
-    println!("{:#?}", list_transactions(&pool, account.id).await.unwrap());
+    let balance = account_balance(&pool, account.id).await;
+    println!("ACCOUNT BALANCE IS {}",balance);
+
 }
