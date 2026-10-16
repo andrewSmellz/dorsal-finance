@@ -2,6 +2,8 @@ use chrono::{DateTime,Utc};
 use uuid::Uuid;
 use rust_decimal::Decimal;
 
+use crate::models::CashKind::{Expense, Withdrawal};
+
 #[derive(Debug, sqlx::FromRow)]
 pub struct Transaction {
     pub id: Uuid,
@@ -30,6 +32,35 @@ pub enum TransactionKind{
     TransferOut,
     TransferIn,
 }
+
+pub enum CashKind{
+    Deposit,
+    Withdrawal,
+    Income,
+    Expense,
+    Dividend,
+    Interest,
+}
+
+impl CashKind{
+    pub fn is_outflow(&self) -> bool{
+        matches!(self, Withdrawal | Expense)
+    }
+}
+
+impl From<CashKind> for TransactionKind {
+    fn from(k: CashKind) -> Self {
+        match k {
+            CashKind::Deposit => TransactionKind::Deposit,
+            CashKind::Withdrawal => TransactionKind::Withdrawal,
+            CashKind::Income => TransactionKind::Income,
+            CashKind::Expense => TransactionKind::Expense,
+            CashKind::Dividend => TransactionKind::Dividend,
+            CashKind::Interest => TransactionKind::Interest,
+        }
+    }
+}
+
 
 impl Transaction {
     pub fn new(account_id: Uuid, kind: TransactionKind, amount: Decimal) -> Self {

@@ -1,5 +1,5 @@
 use sqlx::SqlitePool;
-use crate::{models::{Transaction, TransactionKind::{self, TransferIn, TransferOut}, transaction}, queries::account::get_account_by_id, utils::balance::account_balance};
+use crate::{models::{Transaction, CashKind, TransactionKind::{self, TransferIn, TransferOut, Buy}, transaction}, queries::account::get_account_by_id, utils::balance::account_balance};
 use uuid::Uuid;
 use rust_decimal::Decimal;
 use chrono::{DateTime, Utc};
@@ -23,28 +23,6 @@ where
     Ok(())
 }
 
-pub async fn transfer(pool: &SqlitePool, from: Uuid, to: Uuid, amount:Decimal) -> Result<(), sqlx::Error>{
-    if to==from{
-        return Err(sqlx::Error::Protocol("cannot transfer into same account".into()));
-    }
-    if amount<=Decimal::ZERO{
-        return Err(sqlx::Error::Protocol("amount must be greater than zero".into()));
-    }
-    if account_balance(pool, from).await < amount{
-        return Err(sqlx::Error::Protocol("insufficient account balance".into()));   
-    }
-
-    let mut tx: sqlx::Transaction<'_, sqlx::Sqlite> = pool.begin().await?;
-
-    let from_tx = Transaction::new(from, TransferOut, amount);
-    let to_tx = Transaction::new(to,TransferIn, amount);
-
-    make_transaction(&mut *tx, from_tx).await?;
-    make_transaction(&mut *tx, to_tx).await?;
-
-    tx.commit().await?;
-    Ok(())
-}
 
 fn parse_decimal(s: &str) -> Result<Decimal,sqlx::Error>{
     s.parse::<Decimal>().map_err(|e|sqlx::Error::Decode(Box::new(e)))
@@ -82,3 +60,67 @@ pub async fn list_transactions(pool: &SqlitePool, account_id:Uuid) -> Result<Vec
         
     }).collect()
 }
+
+pub async fn transfer(pool: &SqlitePool, from: Uuid, to: Uuid, amount:Decimal) -> Result<(), sqlx::Error>{
+    if to==from{
+        return Err(sqlx::Error::Protocol("cannot transfer into same account".into()));
+    }
+    if amount<=Decimal::ZERO{
+        return Err(sqlx::Error::Protocol("amount must be greater than zero".into()));
+    }
+
+    let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
+
+    if account_balance(pool, from).await < amount{
+        return Err(sqlx::Error::Protocol("insufficient account balance".into()));   
+    }
+
+    let from_tx = Transaction::new(from, TransferOut, amount);
+    let to_tx = Transaction::new(to,TransferIn, amount);
+
+    make_transaction(&mut *tx, from_tx).await?;
+    make_transaction(&mut *tx, to_tx).await?;
+
+    tx.commit().await
+}
+
+pub async fn cash_flow(pool: &SqlitePool, account_id:Uuid, kind: CashKind, amount:Decimal, note: Option<&str>)
+-> Result<(), sqlx::Error>
+{
+    if amount < Decimal::ZERO{
+        return Err(sqlx::Error::Protocol("amount must be greater than zero".into()));
+    }
+
+    let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
+    
+    if kind.is_outflow() && account_balance(pool, account_id).await < amount{
+        return Err(sqlx::Error::Protocol("insufficient account balance".into()));
+    }
+
+    let mut t = Transaction::new(account_id, kind.into(), amount);
+    if let Some(n) = note {
+        t = t.with_note(n);
+    }
+    make_transaction(&mut *tx, t).await?;
+    tx.commit().await
+}
+
+pub async fn buy(pool: &SqlitePool, account_id: Uuid, ticker: &str, quantity: Decimal, total_cost: Decimal) -> Result<(), sqlx::Error> {
+    if quantity <= Decimal::ZERO {
+        return Err(sqlx::Error::Protocol("invalid quantity".into()));
+    }
+    if total_cost <= Decimal::ZERO {
+        return Err(sqlx::Error::Protocol("invalid cost".into()));
+    }
+ 
+    let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
+ 
+    if account_balance(pool, account_id).await < total_cost {
+        return Err(sqlx::Error::Protocol("insufficient account balance".into()));
+    }
+ 
+    let t = Transaction::new(account_id, Buy, total_cost).with_ticker(ticker).with_quantity(quantity);
+    make_transaction(&mut *tx, t).await?;
+    tx.commit().await
+}
+
