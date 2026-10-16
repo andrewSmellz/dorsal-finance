@@ -9,7 +9,8 @@ CREATE TABLE transactions (
     id          BLOB PRIMARY KEY,
     account_id  BLOB NOT NULL REFERENCES accounts(id),
     kind        TEXT NOT NULL CHECK (kind IN
-                ('deposit','withdrawal','income','expense','buy','sell','dividend','interest')),
+                ('deposit','withdrawal','income','expense','buy','sell',
+                'dividend','interest','transfer_in','transfer_out')),
     amount      TEXT NOT NULL,
     ticker      TEXT,
     quantity    TEXT,

@@ -27,6 +27,18 @@ pub async fn get_account_by_name(pool: &SqlitePool, account_name: String) -> Res
 .await
 }
 
+pub async fn get_account_by_id(pool: &SqlitePool, account_id: Uuid) -> Result<Option<Account>, sqlx::Error>{
+    sqlx::query_as!(
+    Account,
+    r#"SELECT id as "id!: Uuid",
+     name as "name!",
+     kind as "kind!: AccountKind"
+     FROM accounts WHERE id = ?"#,
+    account_id)
+.fetch_optional(pool)
+.await
+}
+
 pub async fn get_all_accounts(pool: &SqlitePool) -> Result<Vec<Account>, sqlx::Error>{
     sqlx::query_as!(
         Account,

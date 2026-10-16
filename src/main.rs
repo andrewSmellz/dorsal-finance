@@ -13,6 +13,8 @@ use models::{Account, AccountKind, Transaction, TransactionKind};
 use queries::account::{get_account_by_name, get_all_accounts, make_account};
 use queries::transaction::{make_transaction, list_transactions};
 
+use crate::models::AccountKind::Chequing;
+use crate::models::TransactionKind::Deposit;
 use crate::utils::balance::account_balance;
 
 #[tokio::main]
@@ -29,20 +31,26 @@ async fn main() {
     // let time = OffsetDateTime::from_unix_timestamp(quote.timestamp).unwrap();
     // println!("At {} the price of XEQT was {}", time, quote.close);
 
-    // let your_account = Account::new("my account".to_string(), AccountKind::RRSP);
-    // make_account(&pool, your_account).await.unwrap();
 
-    // let my_account = get_account_by_name(&pool, "my account".to_string()).await.unwrap();
-    // println!("{:?}",my_account);
 
-    // println!("{:?}",get_all_accounts(&pool).await.unwrap());
 
-    let account = get_account_by_name(&pool, "our account".into()).await.unwrap().unwrap();
 
-    let txs = list_transactions(&pool, account.id).await.unwrap();
-    println!("{:#?}",txs );
+    let our_account = get_account_by_name(&pool, "our account".into()).await.unwrap().unwrap();
+    let your_account = get_account_by_name(&pool, "your account".into()).await.unwrap().unwrap();
 
-    let balance = account_balance(&pool, account.id).await;
-    println!("ACCOUNT BALANCE IS {}",balance);
+    let mut balance = account_balance(&pool, our_account.id).await;
+    println!("OUR ACCOUNT BALANCE IS {}",balance);
+
+    balance = account_balance(&pool, your_account.id).await;
+    println!("YOUR ACCOUNT BALANCE IS {}",balance);
+
+    queries::transaction::transfer(&pool, our_account.id, your_account.id,dec!(40)).await.unwrap();
+    println!("transfer complete of 40");
+
+    balance = account_balance(&pool, our_account.id).await;
+    println!("OUR ACCOUNT BALANCE IS {}",balance);
+
+    balance = account_balance(&pool, your_account.id).await;
+    println!("YOUR ACCOUNT BALANCE IS {}",balance);
 
 }

@@ -15,7 +15,7 @@ pub struct Transaction {
 }
 
 #[derive(Debug, Clone, sqlx::Type)]
-#[sqlx(rename_all = "lowercase")]
+#[sqlx(rename_all = "snake_case")]
 pub enum TransactionKind{
     Deposit,
     Withdrawal,
@@ -26,6 +26,9 @@ pub enum TransactionKind{
     Sell,
     Dividend,
     Interest,
+
+    TransferOut,
+    TransferIn,
 }
 
 impl Transaction {
