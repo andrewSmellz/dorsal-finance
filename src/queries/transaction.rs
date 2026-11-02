@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 
 
 
-pub async fn make_transaction<'e, E>(exec: E, tx: Transaction) -> Result<(), sqlx::Error>
+async fn make_transaction<'e, E>(exec: E, tx: Transaction) -> Result<(), sqlx::Error>
 where
     E: sqlx::Executor<'e, Database = sqlx::Sqlite>,
 {
@@ -28,7 +28,10 @@ fn parse_decimal(s: &str) -> Result<Decimal,sqlx::Error>{
     s.parse::<Decimal>().map_err(|e|sqlx::Error::Decode(Box::new(e)))
 }
 
-pub async fn list_transactions(pool: &SqlitePool, account_id:Uuid) -> Result<Vec<Transaction>, sqlx::Error>{
+pub async fn list_transactions<'e, E>(exec: E, account_id:Uuid) -> Result<Vec<Transaction>, sqlx::Error>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Sqlite>,
+{
     let rows = sqlx::query!(
         r#"SELECT id as "id!: Uuid",
                   account_id as "account_id!: Uuid",
@@ -43,7 +46,7 @@ pub async fn list_transactions(pool: &SqlitePool, account_id:Uuid) -> Result<Vec
            ORDER BY timestamp DESC"#,
         account_id
     )
-    .fetch_all(pool)
+    .fetch_all(exec)
     .await?;
 
     rows.into_iter().map(|t|{
@@ -93,7 +96,7 @@ pub async fn cash_flow(pool: &SqlitePool, account_id:Uuid, kind: CashKind, amoun
 
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
     
-    if kind.is_outflow() && account_balance(pool, account_id).await < amount{
+    if kind.is_outflow() && account_balance(&mut *tx, account_id).await < amount{
         return Err(sqlx::Error::Protocol("insufficient account balance".into()));
     }
 

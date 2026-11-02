@@ -11,7 +11,7 @@ use rust_decimal::dec;
 
 use models::{Account, AccountKind, Transaction, TransactionKind};
 use queries::account::{get_account_by_name, get_all_accounts, make_account};
-use queries::transaction::{make_transaction, list_transactions};
+use queries::transaction::{list_transactions};
 
 use crate::models::AccountKind::Chequing;
 use crate::models::TransactionKind::Deposit;
@@ -44,7 +44,7 @@ async fn main() {
     balance = account_balance(&pool, your_account.id).await;
     println!("YOUR ACCOUNT BALANCE IS {}",balance);
 
-    queries::transaction::transfer(&pool, our_account.id, your_account.id,dec!(40)).await.unwrap();
+    queries::transaction::transfer(&pool, our_account.id, your_account.id,dec!(5)).await.unwrap();
     println!("transfer complete of 40");
 
     balance = account_balance(&pool, our_account.id).await;
