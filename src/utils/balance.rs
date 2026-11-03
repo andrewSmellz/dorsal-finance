@@ -1,9 +1,11 @@
 use rust_decimal::prelude::Zero;
 use uuid::Uuid;
 use rust_decimal::Decimal;
+use sqlx::SqlitePool;
 
 
 use crate::models::TransactionKind::*;
+use crate::queries::account::get_all_accounts;
 use crate::queries::transaction::{list_transactions,list_all_transactions};
 
 pub async fn account_balance<'e, E>(exec: E, account_id: Uuid) -> Decimal
@@ -19,14 +21,15 @@ where
     )
 }
 
-pub async fn net_worth<'e, E>(exec: E, account_id: Uuid) -> Decimal
-where
-    E: sqlx::Executor<'e, Database = sqlx::Sqlite>,
-{
-    let txs = list_all_transactions(exec).await.unwrap();
-    //TODO finish off networth, need a way to calculate stock value for this
-    //afterwards call account balance and this new stock balance? function
-    //then just sum up everything
+pub async fn net_worth(pool: &SqlitePool) -> Decimal {
+    let accounts = get_all_accounts(pool).await.unwrap();
 
-    Decimal::zero()
+    let mut networth = Decimal::ZERO;
+    for account in &accounts {
+        println!("account name:{}", account.name);
+        let balance = account_balance(pool, account.id).await;
+        networth += balance;
+        println!("account balance:{}", balance);
+    }
+    networth
 }

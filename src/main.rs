@@ -15,7 +15,7 @@ use queries::transaction::{list_transactions};
 
 use crate::models::AccountKind::Chequing;
 use crate::models::TransactionKind::Deposit;
-use crate::utils::balance::account_balance;
+use crate::utils::balance::{account_balance, net_worth};
 
 #[tokio::main]
 async fn main() {
@@ -35,22 +35,7 @@ async fn main() {
 
 
 
-    let our_account = get_account_by_name(&pool, "our account".into()).await.unwrap().unwrap();
-    let your_account = get_account_by_name(&pool, "your account".into()).await.unwrap().unwrap();
-
-    let mut balance = account_balance(&pool, our_account.id).await;
-    println!("OUR ACCOUNT BALANCE IS {}",balance);
-
-    balance = account_balance(&pool, your_account.id).await;
-    println!("YOUR ACCOUNT BALANCE IS {}",balance);
-
-    queries::transaction::transfer(&pool, our_account.id, your_account.id,dec!(5)).await.unwrap();
-    println!("transfer complete of 40");
-
-    balance = account_balance(&pool, our_account.id).await;
-    println!("OUR ACCOUNT BALANCE IS {}",balance);
-
-    balance = account_balance(&pool, your_account.id).await;
-    println!("YOUR ACCOUNT BALANCE IS {}",balance);
+    let networth = net_worth(&pool).await;
+    println!("{}",networth);
 
 }

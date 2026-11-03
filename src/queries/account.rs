@@ -39,7 +39,10 @@ pub async fn get_account_by_id(pool: &SqlitePool, account_id: Uuid) -> Result<Op
 .await
 }
 
-pub async fn get_all_accounts(pool: &SqlitePool) -> Result<Vec<Account>, sqlx::Error>{
+pub async fn get_all_accounts<'e, E>(exec: E) -> Result<Vec<Account>, sqlx::Error>
+where
+E: sqlx::Executor<'e, Database = sqlx::Sqlite>,
+{
     sqlx::query_as!(
         Account,
         r#"SELECT id as "id!: Uuid",
@@ -47,7 +50,7 @@ pub async fn get_all_accounts(pool: &SqlitePool) -> Result<Vec<Account>, sqlx::E
             kind as "kind!: AccountKind"
             FROM accounts
         "#
-    ).fetch_all(pool)
+    ).fetch_all(exec)
     .await
 }
 
