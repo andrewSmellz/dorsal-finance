@@ -22,7 +22,11 @@ impl Holding{
         self.quantity+=quantity;
         self.cost_basis+=cost;
     }
-    pub fn apply_sell(&mut self, quantity:Decimal){
+    pub fn apply_sell(&mut self, quantity:Decimal)->Result<(), String>{
+        if quantity > self.quantity {
+            return Err(format!("cannot sell {} of {}, only {} held", quantity, self.ticker, self.quantity));
+        }
+
         let avg_cost = self.cost_basis / self.quantity;
         self.quantity-=quantity;
 
@@ -31,5 +35,6 @@ impl Holding{
         } else {
             self.cost_basis -= avg_cost * quantity;
         }
+        Ok(())
     }
 }

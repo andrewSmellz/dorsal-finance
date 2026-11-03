@@ -25,8 +25,4 @@ async fn main() {
     let provider = yahoo::YahooConnector::new().unwrap();
 
 
-
-    let networth = net_worth(&pool).await;
-    println!("{}",networth);
-
 }
