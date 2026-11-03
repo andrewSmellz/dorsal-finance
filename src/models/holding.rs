@@ -17,4 +17,19 @@ impl Holding{
             cost_basis,
         }
     }
+
+    pub fn apply_buy(&mut self, quantity: Decimal, cost: Decimal){
+        self.quantity+=quantity;
+        self.cost_basis+=cost;
+    }
+    pub fn apply_sell(&mut self, quantity:Decimal){
+        let avg_cost = self.cost_basis / self.quantity;
+        self.quantity-=quantity;
+
+        if self.quantity.is_zero() {
+            self.cost_basis = Decimal::ZERO;
+        } else {
+            self.cost_basis -= avg_cost * quantity;
+        }
+    }
 }
