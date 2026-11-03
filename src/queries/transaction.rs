@@ -64,6 +64,42 @@ where
     }).collect()
 }
 
+pub async fn list_all_transactions<'e, E>(exec: E) -> Result<Vec<Transaction>, sqlx::Error>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Sqlite>,
+{
+    let rows = sqlx::query!(
+        r#"SELECT 
+            id as "id!: Uuid",
+            account_id as "account_id!: Uuid",
+            kind as "kind!: TransactionKind",
+            amount as "amount!",
+            ticker,
+            quantity,
+            timestamp as "timestamp!: DateTime<Utc>",
+            note
+        FROM transactions
+        ORDER BY timestamp DESC"#
+    )
+    .fetch_all(exec)
+    .await?;
+
+    rows.into_iter().map(|t|{
+        Ok(Transaction{
+            id: t.id,
+            account_id: t.account_id,
+            kind: t.kind,
+                amount: parse_decimal(&t.amount)?,
+                ticker: t.ticker,
+                quantity: t.quantity.as_deref().map(parse_decimal).transpose()?,
+                timestamp: t.timestamp,
+                note: t.note,
+        })
+        
+    }).collect()
+}
+
+
 pub async fn transfer(pool: &SqlitePool, from: Uuid, to: Uuid, amount:Decimal) -> Result<(), sqlx::Error>{
     if to==from{
         return Err(sqlx::Error::Protocol("cannot transfer into same account".into()));
@@ -177,4 +213,3 @@ pub async fn sell(pool: &SqlitePool, account_id: Uuid, ticker: &str, quantity: D
     make_transaction(&mut *tx, t).await?;
     tx.commit().await
 }
-
