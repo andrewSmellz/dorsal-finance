@@ -24,8 +24,7 @@ where
     )
 }
 
-pub async fn net_worth(pool: &SqlitePool) -> Decimal {
-    let provider = yahoo::YahooConnector::new().unwrap();
+pub async fn net_worth(pool: &SqlitePool, provider: &yahoo::YahooConnector) -> Decimal {
 
 
     let accounts = get_all_accounts(pool).await.unwrap();
@@ -40,7 +39,7 @@ pub async fn net_worth(pool: &SqlitePool) -> Decimal {
         let holdings = account_holdings(pool, account.id).await.unwrap();
         for holding in &holdings{
             println!("holding {} of quantity {}",holding.ticker,holding.quantity);
-            let (value,timestamp) = get_price_by_ticker(&provider, holding.ticker.as_str()).await; 
+            let (value,timestamp) = get_price_by_ticker(provider, holding.ticker.as_str()).await; 
             println!("at {}, the price of {} was {}",timestamp, holding.ticker,value.unwrap());
             let total_value = holding.quantity * value.unwrap();
             println!("total value {}", total_value);
