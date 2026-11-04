@@ -1,11 +1,6 @@
-
+use dorsal_finance::{db, utils::balance::net_worth};
 
 use yahoo_finance_api as yahoo;
-
-
-
-
-use crate::utils::balance::net_worth;
 
 #[tokio::main]
 async fn main() {
@@ -14,6 +9,6 @@ async fn main() {
     let pool = db::connect(&url).await.expect("failed to connect to database");
     let provider = yahoo::YahooConnector::new().expect("failed to connect to yahoo");
 
-    net_worth(&pool,&provider).await;
+    net_worth(&pool,&provider).await.expect("networth failed");
 
 }
