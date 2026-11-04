@@ -1,4 +1,3 @@
-use rust_decimal::prelude::Zero;
 use uuid::Uuid;
 use rust_decimal::Decimal;
 use sqlx::SqlitePool;
@@ -8,7 +7,7 @@ use yahoo_finance_api as yahoo;//TODO remove later fix the provider stuff
 
 use crate::models::TransactionKind::*;
 use crate::queries::account::get_all_accounts;
-use crate::queries::transaction::{list_transactions,list_all_transactions};
+use crate::queries::transaction::list_transactions;
 use crate::utils::holding::{account_holdings, get_price_by_ticker};
 
 pub async fn account_balance<'e, E>(exec: E, account_id: Uuid) -> Decimal

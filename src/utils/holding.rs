@@ -3,12 +3,12 @@ use yahoo_finance_api as yahoo;
 use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
 use crate::models::holding::Holding;
-use crate::models::transaction::Transaction;
 use uuid::Uuid;
 use std::collections::BTreeMap;
-use rust_decimal_macros::dec;
 use crate::models::TransactionKind::*;
 use crate::queries::transaction::list_transactions;
+use crate::error::Result;
+
 
 pub async fn get_price_by_ticker(provider: &yahoo::YahooConnector, ticker: &str)-> (Option<Decimal>,OffsetDateTime){
     let response = provider.get_latest_quotes(ticker, "1d").await.unwrap();
@@ -17,7 +17,7 @@ pub async fn get_price_by_ticker(provider: &yahoo::YahooConnector, ticker: &str)
     (Decimal::from_f64(quote.close),time)
 }
 
-pub async fn account_holdings<'e, E>(exec: E, account_id: Uuid) -> Result<Vec<Holding>, sqlx::Error>
+pub async fn account_holdings<'e, E>(exec: E, account_id: Uuid) -> Result<Vec<Holding>>
 where 
     E: sqlx::Executor<'e, Database = sqlx::Sqlite>
 {
@@ -39,7 +39,7 @@ where
                 holding.apply_buy(qty, tx.amount);
             },
             Sell=>{
-                holding.apply_sell(qty);
+                holding.apply_sell(qty)?;
             }
             _ =>{},
         }

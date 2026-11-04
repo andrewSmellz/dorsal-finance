@@ -2,17 +2,14 @@ mod db;
 mod models;
 mod queries;
 mod utils;
+mod error;
 
-use tokio;
 use yahoo_finance_api as yahoo;
 
 
 
-use models::{Account, AccountKind, Transaction, TransactionKind};
-use queries::account::{get_account_by_name, get_all_accounts, make_account};
-use queries::transaction::{list_transactions};
 
-use crate::utils::balance::{account_balance, net_worth};
+use crate::utils::balance::net_worth;
 
 #[tokio::main]
 async fn main() {

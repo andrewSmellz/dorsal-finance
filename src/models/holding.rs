@@ -1,6 +1,5 @@
 use rust_decimal::Decimal;
-use uuid::Uuid;
-
+use crate::error::{Error, Result};
 
 #[derive(Debug)]
 pub struct Holding{
@@ -22,13 +21,21 @@ impl Holding{
         self.quantity+=quantity;
         self.cost_basis+=cost;
     }
-    pub fn apply_sell(&mut self, quantity:Decimal)->Result<(), String>{
+
+    pub fn apply_sell(&mut self, quantity: Decimal) -> Result<()> {
+        if quantity <= Decimal::ZERO {
+            return Err(Error::InvalidAmount);
+        }
         if quantity > self.quantity {
-            return Err(format!("cannot sell {} of {}, only {} held", quantity, self.ticker, self.quantity));
+            return Err(Error::InsufficientShares {
+                ticker: self.ticker.clone(),
+                requested: quantity,
+                held: self.quantity,
+            });
         }
 
         let avg_cost = self.cost_basis / self.quantity;
-        self.quantity-=quantity;
+        self.quantity -= quantity;
 
         if self.quantity.is_zero() {
             self.cost_basis = Decimal::ZERO;

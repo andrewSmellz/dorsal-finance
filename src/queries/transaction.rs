@@ -1,12 +1,13 @@
-use sqlx::{SqlitePool, query};
-use crate::{models::{CashKind, AccountKind,Transaction,Account, TransactionKind::{self, Buy, Sell, TransferIn, TransferOut}, transaction}, queries::account::get_account_by_id, utils::balance::account_balance};
+use sqlx::SqlitePool;
+use crate::{models::{CashKind,Transaction, TransactionKind::{self, Buy, Sell, TransferIn, TransferOut}}, utils::balance::account_balance};
 use uuid::Uuid;
 use rust_decimal::Decimal;
 use chrono::{DateTime, Utc};
+use crate::error::{Error, Result};
 
 
 
-async fn make_transaction<'e, E>(exec: E, tx: Transaction) -> Result<(), sqlx::Error>
+async fn make_transaction<'e, E>(exec: E, tx: Transaction) -> Result<()>
 where
     E: sqlx::Executor<'e, Database = sqlx::Sqlite>,
 {
@@ -24,11 +25,11 @@ where
 }
 
 
-fn parse_decimal(s: &str) -> Result<Decimal,sqlx::Error>{
-    s.parse::<Decimal>().map_err(|e|sqlx::Error::Decode(Box::new(e)))
+fn parse_decimal(s: &str) -> Result<Decimal>{
+    Ok(s.parse::<Decimal>()?)
 }
 
-pub async fn list_transactions<'e, E>(exec: E, account_id:Uuid) -> Result<Vec<Transaction>, sqlx::Error>
+pub async fn list_transactions<'e, E>(exec: E, account_id:Uuid) -> Result<Vec<Transaction>>
 where
     E: sqlx::Executor<'e, Database = sqlx::Sqlite>,
 {
@@ -64,7 +65,7 @@ where
     }).collect()
 }
 
-pub async fn list_all_transactions<'e, E>(exec: E) -> Result<Vec<Transaction>, sqlx::Error>
+pub async fn list_all_transactions<'e, E>(exec: E) -> Result<Vec<Transaction>>
 where
     E: sqlx::Executor<'e, Database = sqlx::Sqlite>,
 {
@@ -100,18 +101,18 @@ where
 }
 
 
-pub async fn transfer(pool: &SqlitePool, from: Uuid, to: Uuid, amount:Decimal) -> Result<(), sqlx::Error>{
-    if to==from{
-        return Err(sqlx::Error::Protocol("cannot transfer into same account".into()));
+pub async fn transfer(pool: &SqlitePool, from: Uuid, to: Uuid, amount:Decimal) -> Result<()>{
+    if to == from {
+        return Err(Error::SameAccount);
     }
-    if amount<=Decimal::ZERO{
-        return Err(sqlx::Error::Protocol("amount must be greater than zero".into()));
+    if amount <= Decimal::ZERO {
+        return Err(Error::InvalidAmount);
     }
 
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
 
     if account_balance(&mut *tx, from).await < amount{
-        return Err(sqlx::Error::Protocol("insufficient account balance".into()));   
+        return Err(Error::InsufficientFunds);
     }
 
     let from_tx = Transaction::new(from, TransferOut, amount);
@@ -120,20 +121,21 @@ pub async fn transfer(pool: &SqlitePool, from: Uuid, to: Uuid, amount:Decimal) -
     make_transaction(&mut *tx, from_tx).await?;
     make_transaction(&mut *tx, to_tx).await?;
 
-    tx.commit().await
+    tx.commit().await?;
+    Ok(())
 }
 
 pub async fn cash_flow(pool: &SqlitePool, account_id:Uuid, kind: CashKind, amount:Decimal, note: Option<&str>)
--> Result<(), sqlx::Error>
+-> Result<()>
 {
     if amount <= Decimal::ZERO{
-        return Err(sqlx::Error::Protocol("amount must be greater than zero".into()));
+        return Err(Error::InvalidAmount);
     }
 
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
     
     if kind.is_outflow() && account_balance(&mut *tx, account_id).await < amount{
-        return Err(sqlx::Error::Protocol("insufficient account balance".into()));
+        return Err(Error::InsufficientFunds);
     }
 
     let mut t = Transaction::new(account_id, kind.into(), amount);
@@ -141,29 +143,31 @@ pub async fn cash_flow(pool: &SqlitePool, account_id:Uuid, kind: CashKind, amoun
         t = t.with_note(n);
     }
     make_transaction(&mut *tx, t).await?;
-    tx.commit().await
+    tx.commit().await?;
+    Ok(())
 }
 
-pub async fn buy(pool: &SqlitePool, account_id: Uuid, ticker: &str, quantity: Decimal, total_cost: Decimal) -> Result<(), sqlx::Error> {
+pub async fn buy(pool: &SqlitePool, account_id: Uuid, ticker: &str, quantity: Decimal, total_cost: Decimal) -> Result<()> {
     if quantity <= Decimal::ZERO {
-        return Err(sqlx::Error::Protocol("invalid quantity".into()));
+        return Err(Error::InvalidAmount);
     }
     if total_cost <= Decimal::ZERO {
-        return Err(sqlx::Error::Protocol("invalid cost".into()));
+        return Err(Error::InvalidAmount);
     }
  
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
  
     if account_balance(&mut *tx, account_id).await < total_cost {
-        return Err(sqlx::Error::Protocol("insufficient account balance".into()));
+        return Err(Error::InsufficientFunds);
     }
  
     let t = Transaction::new(account_id, Buy, total_cost).with_ticker(ticker).with_quantity(quantity);
     make_transaction(&mut *tx, t).await?;
-    tx.commit().await
+    tx.commit().await?;
+    Ok(())
 }
 
-async fn held_quantity<'e, E>(exec: E, account_id: Uuid, ticker: &str) -> Result<Decimal, sqlx::Error>
+async fn held_quantity<'e, E>(exec: E, account_id: Uuid, ticker: &str) -> Result<Decimal>
 where
     E: sqlx::Executor<'e, Database = sqlx::Sqlite>,
 {
@@ -195,21 +199,23 @@ where
     Ok(held)
 }
 
-pub async fn sell(pool: &SqlitePool, account_id: Uuid, ticker: &str, quantity: Decimal, total_return: Decimal) -> Result<(), sqlx::Error> {
+pub async fn sell(pool: &SqlitePool, account_id: Uuid, ticker: &str, quantity: Decimal, total_return: Decimal) -> Result<()> {
     if quantity <= Decimal::ZERO {
-        return Err(sqlx::Error::Protocol("invalid quantity".into()));
+        return Err(Error::InvalidAmount);
     }
     if total_return <= Decimal::ZERO {
-        return Err(sqlx::Error::Protocol("invalid returns".into()));
+        return Err(Error::InvalidAmount);
     }
 
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
 
-    if held_quantity(&mut *tx, account_id, ticker).await? < quantity {
-        return Err(sqlx::Error::Protocol("insufficient shares held".into()));
+    let held = held_quantity(&mut *tx, account_id, ticker).await?;
+    if  held < quantity {
+        return Err(Error::InsufficientShares { ticker: ticker.into(), requested: quantity, held: held});
     }
 
     let t = Transaction::new(account_id, Sell, total_return).with_ticker(ticker).with_quantity(quantity);
     make_transaction(&mut *tx, t).await?;
-    tx.commit().await
+    tx.commit().await?;
+    Ok(())
 }
