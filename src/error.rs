@@ -26,4 +26,7 @@ pub enum Error {
 
     #[error("cannot transfer into the same account")]
     SameAccount,
+
+    #[error("no usable price for {0}")]
+    NoPrice(String),   
 }

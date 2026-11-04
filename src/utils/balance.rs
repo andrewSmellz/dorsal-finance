@@ -26,7 +26,6 @@ where
 
 pub async fn net_worth(pool: &SqlitePool, provider: &yahoo::YahooConnector) -> Result<Decimal> {
 
-
     let accounts = get_all_accounts(pool).await?;
 
     let mut networth = Decimal::ZERO;
@@ -39,9 +38,9 @@ pub async fn net_worth(pool: &SqlitePool, provider: &yahoo::YahooConnector) -> R
         let holdings = account_holdings(pool, account.id).await?;
         for holding in &holdings{
             println!("holding {} of quantity {}",holding.ticker,holding.quantity);
-            let (value,timestamp) = get_price_by_ticker(provider, holding.ticker.as_str()).await; 
-            println!("at {}, the price of {} was {}",timestamp, holding.ticker,value.unwrap());
-            let total_value = holding.quantity * value.unwrap();
+            let (value,timestamp) = get_price_by_ticker(provider, holding.ticker.as_str()).await?; 
+            println!("at {}, the price of {} was {}",timestamp, holding.ticker,value);
+            let total_value = holding.quantity * value;
             println!("total value {}", total_value);
             networth+=total_value;
         }

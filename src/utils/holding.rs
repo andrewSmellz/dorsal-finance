@@ -7,14 +7,18 @@ use uuid::Uuid;
 use std::collections::BTreeMap;
 use crate::models::TransactionKind::*;
 use crate::queries::transaction::list_transactions;
-use crate::error::Result;
+use crate::error::{Error,Result};
 
 
-pub async fn get_price_by_ticker(provider: &yahoo::YahooConnector, ticker: &str)-> (Option<Decimal>,OffsetDateTime){
-    let response = provider.get_latest_quotes(ticker, "1d").await.unwrap();
-    let quote = response.last_quote().unwrap();
-    let time = OffsetDateTime::from_unix_timestamp(quote.timestamp).unwrap();
-    (Decimal::from_f64(quote.close),time)
+pub async fn get_price_by_ticker(provider: &yahoo::YahooConnector, ticker: &str)-> Result<(Decimal,OffsetDateTime)>{
+    let response = provider.get_latest_quotes(ticker, "1d").await?;
+    let quote = response.last_quote()?;
+    let time = OffsetDateTime::from_unix_timestamp(quote.timestamp)
+    .map_err(|_| Error::NoPrice(ticker.into()))?;
+
+    let price = Decimal::from_f64(quote.close)
+    .ok_or_else(|| Error::NoPrice(ticker.into()))?;
+    Ok((price, time))
 }
 
 pub async fn account_holdings<'e, E>(exec: E, account_id: Uuid) -> Result<Vec<Holding>>
