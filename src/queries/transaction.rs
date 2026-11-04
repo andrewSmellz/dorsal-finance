@@ -110,7 +110,7 @@ pub async fn transfer(pool: &SqlitePool, from: Uuid, to: Uuid, amount:Decimal) -
 
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
 
-    if account_balance(pool, from).await < amount{
+    if account_balance(&mut *tx, from).await < amount{
         return Err(sqlx::Error::Protocol("insufficient account balance".into()));   
     }
 
@@ -126,7 +126,7 @@ pub async fn transfer(pool: &SqlitePool, from: Uuid, to: Uuid, amount:Decimal) -
 pub async fn cash_flow(pool: &SqlitePool, account_id:Uuid, kind: CashKind, amount:Decimal, note: Option<&str>)
 -> Result<(), sqlx::Error>
 {
-    if amount < Decimal::ZERO{
+    if amount <= Decimal::ZERO{
         return Err(sqlx::Error::Protocol("amount must be greater than zero".into()));
     }
 
@@ -154,7 +154,7 @@ pub async fn buy(pool: &SqlitePool, account_id: Uuid, ticker: &str, quantity: De
  
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
  
-    if account_balance(pool, account_id).await < total_cost {
+    if account_balance(&mut *tx, account_id).await < total_cost {
         return Err(sqlx::Error::Protocol("insufficient account balance".into()));
     }
  
