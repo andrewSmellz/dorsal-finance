@@ -14,7 +14,6 @@ pub async fn get_price_by_ticker(provider: &yahoo::YahooConnector, ticker: &str)
     let response = provider.get_latest_quotes(ticker, "1d").await.unwrap();
     let quote = response.last_quote().unwrap();
     let time = OffsetDateTime::from_unix_timestamp(quote.timestamp).unwrap();
-    println!("At {} the price of XEQT was {}", time, quote.close);
     (Decimal::from_f64(quote.close),time)
 }
 
