@@ -4,16 +4,30 @@ use rust_decimal::Decimal;
 
 use crate::models::CashKind::{Expense, Withdrawal};
 
+use super::Currency;
+
 #[derive(Debug, sqlx::FromRow)]
 pub struct Transaction {
     pub id: Uuid,
     pub account_id: Uuid,
     pub kind: TransactionKind,
-    pub amount: Decimal,
-    pub ticker: Option<String>,
-    pub quantity: Option<Decimal>,
+    pub amount: Money,
+    pub position: Option<Position>,
     pub timestamp: DateTime<Utc>,
     pub note: Option<String>,
+}
+
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Money {
+    pub value: Decimal,
+    pub currency: Currency,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Position  {
+    pub ticker: String,
+    pub quantity: Decimal,
 }
 
 #[derive(Debug, Clone, sqlx::Type)]
@@ -62,15 +76,21 @@ impl From<CashKind> for TransactionKind {
 }
 
 
+impl Money {
+    pub fn new(value: Decimal, currency: Currency) -> Self {
+        Money { value, currency }
+    }
+}
+
+
 impl Transaction {
-    pub fn new(account_id: Uuid, kind: TransactionKind, amount: Decimal) -> Self {
+    pub fn new(account_id: Uuid, kind: TransactionKind, amount: Money) -> Self {
         Transaction {
             id: Uuid::new_v4(),
             account_id,
             kind,
             amount,
-            ticker: None,
-            quantity: None,
+            position: None,
             timestamp: Utc::now(),
             note: None,
         }
@@ -81,13 +101,8 @@ impl Transaction {
         self
     }
 
-    pub fn with_ticker(mut self, ticker: impl Into<String>) -> Self {
-        self.ticker = Some(ticker.into());
-        self
-    }
-
-    pub fn with_quantity(mut self, quantity: Decimal) -> Self {
-        self.quantity = Some(quantity);
+    pub fn with_position(mut self, ticker: impl Into<String>, quantity: Decimal) -> Self {
+        self.position = Some(Position { ticker: ticker.into(), quantity });
         self
     }
 }
