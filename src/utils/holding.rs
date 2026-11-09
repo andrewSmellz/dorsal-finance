@@ -6,11 +6,12 @@ use crate::models::holding::Holding;
 use uuid::Uuid;
 use std::collections::BTreeMap;
 use crate::models::TransactionKind::*;
+use crate::models::{Money,Currency};
 use crate::queries::transaction::list_transactions;
 use crate::error::{Error,Result};
 
 
-pub async fn get_price_by_ticker(provider: &yahoo::YahooConnector, ticker: &str)-> Result<(Decimal,OffsetDateTime)>{
+pub async fn get_price_by_ticker(provider: &yahoo::YahooConnector, ticker: &str)-> Result<(Money,OffsetDateTime)>{
     let response = provider.get_latest_quotes(ticker, "1d").await?;
     let quote = response.last_quote()?;
     let time = OffsetDateTime::from_unix_timestamp(quote.timestamp)
@@ -18,7 +19,14 @@ pub async fn get_price_by_ticker(provider: &yahoo::YahooConnector, ticker: &str)
 
     let price = Decimal::from_f64(quote.close)
     .ok_or_else(|| Error::NoPrice(ticker.into()))?;
-    Ok((price, time))
+
+    let currency = response
+    .metadata()?
+    .currency
+    .and_then(|c| c.parse::<Currency>().ok())
+    .ok_or_else(|| Error::NoPrice(ticker.into()))?;
+
+    Ok((Money::new(price, currency), time))
 }
 
 pub async fn account_holdings<'e, E>(exec: E, account_id: Uuid) -> Result<Vec<Holding>>

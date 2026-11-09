@@ -86,6 +86,12 @@ impl Position{
     }
 }
 
+impl std::fmt::Display for Money {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{} {}", self.value, self.currency)
+    }
+}
+
 impl Transaction {
     pub fn new(account_id: Uuid, kind: TransactionKind, amount: Money) -> Self {
         Transaction {

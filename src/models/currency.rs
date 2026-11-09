@@ -57,8 +57,10 @@ pub enum Currency {
     // Western & Northern Europe
     /// Euro
     EUR,
-    /// British Pound Sterling
+    /// Great British Pound 
     GBP,
+    /// Great British pence 
+    GBp,
     /// Swiss Franc
     CHF,
     /// Swedish Krona
