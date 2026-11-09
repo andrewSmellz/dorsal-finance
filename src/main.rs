@@ -1,5 +1,4 @@
-use dorsal_finance::{db, utils::balance::net_worth};
-
+use dorsal_finance::{db, models::Currency, utils::balance::net_worth};
 use yahoo_finance_api as yahoo;
 
 #[tokio::main]
@@ -9,6 +8,6 @@ async fn main() {
     let pool = db::connect(&url).await.expect("failed to connect to database");
     let provider = yahoo::YahooConnector::new().expect("failed to connect to yahoo");
 
-    net_worth(&pool,&provider).await.expect("networth failed");
+    net_worth(&pool,&provider,Currency::CAD).await.expect("networth failed");
 
 }

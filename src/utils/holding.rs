@@ -32,7 +32,7 @@ where
     //loop through all the transactions and calculate how many of whatever ticker fund is owned
     let mut map:BTreeMap<String, Holding> = BTreeMap::new();
 
-    for tx in txs.iter(){
+    for tx in &txs{
         let Some(position) = &tx.position else { continue };
         let holding = map
                     .entry(position.ticker.to_string())

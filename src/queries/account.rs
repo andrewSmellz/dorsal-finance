@@ -1,7 +1,7 @@
 use crate::models::{Account, AccountKind};
 use sqlx::SqlitePool;
 use uuid::Uuid;
-use crate::error::{Error, Result};
+use crate::error::Result;
 
 pub async fn make_account(pool: &SqlitePool,account: Account) -> Result<()> {
     sqlx::query!(

@@ -123,7 +123,7 @@ pub async fn transfer(pool: &SqlitePool, from: Uuid, to: Uuid, amount:Money) -> 
 
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
 
-    if account_balance(&mut *tx, from).await? < amount.value{
+    if account_balance(&mut *tx, from,amount.currency).await? < amount.value{
         return Err(Error::InsufficientFunds);
     }
 
@@ -146,7 +146,7 @@ pub async fn cash_flow(pool: &SqlitePool, account_id:Uuid, kind: CashKind, amoun
 
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
     
-    if kind.is_outflow() && account_balance(&mut *tx, account_id).await? < amount.value{
+    if kind.is_outflow() && account_balance(&mut *tx, account_id, amount.currency).await? < amount.value{
         return Err(Error::InsufficientFunds);
     }
 
@@ -169,7 +169,7 @@ pub async fn buy(pool: &SqlitePool, account_id: Uuid, position: Position, total_
  
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
  
-    if account_balance(&mut *tx, account_id).await? < total_cost.value {
+    if account_balance(&mut *tx, account_id, total_cost.currency).await? < total_cost.value {
         return Err(Error::InsufficientFunds);
     }
  

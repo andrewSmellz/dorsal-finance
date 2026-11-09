@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id as \"id!: Uuid\",\n                  account_id as \"account_id!: Uuid\",\n                  kind as \"kind!: TransactionKind\",\n                  amount as \"amount!\",\n                  ticker,\n                  quantity,\n                  timestamp as \"timestamp!: DateTime<Utc>\",\n                  note\n           FROM transactions\n           WHERE account_id = ?\n           ORDER BY timestamp DESC",
+  "query": "SELECT id as \"id!: Uuid\",\n                  account_id as \"account_id!: Uuid\",\n                  kind as \"kind!: TransactionKind\",\n                  amount as \"amount!\",\n                  currency as \"currency!: Currency\",\n                  ticker,\n                  quantity,\n                  timestamp as \"timestamp!: DateTime<Utc>\",\n                  note\n           FROM transactions\n           WHERE account_id = ?\n           ORDER BY timestamp DESC",
   "describe": {
     "columns": [
       {
@@ -24,23 +24,28 @@
         "type_info": "Text"
       },
       {
-        "name": "ticker",
+        "name": "currency!: Currency",
         "ordinal": 4,
         "type_info": "Text"
       },
       {
-        "name": "quantity",
+        "name": "ticker",
         "ordinal": 5,
         "type_info": "Text"
       },
       {
-        "name": "timestamp!: DateTime<Utc>",
+        "name": "quantity",
         "ordinal": 6,
         "type_info": "Text"
       },
       {
-        "name": "note",
+        "name": "timestamp!: DateTime<Utc>",
         "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "note",
+        "ordinal": 8,
         "type_info": "Text"
       }
     ],
@@ -52,11 +57,12 @@
       false,
       false,
       false,
+      false,
       true,
       true,
       false,
       true
     ]
   },
-  "hash": "81f3d0fca1d84d31178e8dfee6ed7d44c652299e385c20280a76c16fb2752d4a"
+  "hash": "9919cb4211309fe74f5ce1fc9ce6a5e272eb38f18edb5195c677b70833d47985"
 }

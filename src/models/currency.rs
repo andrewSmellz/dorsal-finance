@@ -1,6 +1,6 @@
 use strum::{Display, EnumString};
 
-#[derive(sqlx::Type,Debug, Clone, Copy, PartialEq, Eq, Hash, Display, EnumString)]
+#[derive(sqlx::Type,Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Display, EnumString)]
 pub enum Currency {
     // North America
     /// Canadian Dollar
