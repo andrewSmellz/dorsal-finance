@@ -105,7 +105,7 @@ impl Transaction {
     }
 
     pub fn with_position(mut self, ticker: impl Into<String>, quantity: Decimal) -> Self {
-        self.position = Some(Position { ticker: ticker.into(), quantity });
+        self.position = Some(Position::new(ticker.into(), quantity));
         self
     }
 }

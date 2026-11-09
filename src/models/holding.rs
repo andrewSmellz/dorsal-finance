@@ -9,7 +9,7 @@ pub struct Holding{
 impl Holding{
     pub fn new(ticker: String, currency: Currency) -> Self {
         Holding {
-            position: Position {ticker, quantity: Decimal::ZERO },
+            position: Position::new(ticker, Decimal::ZERO),
             cost_basis: Money::new(Decimal::ZERO, currency),
         }
     }

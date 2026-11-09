@@ -36,7 +36,7 @@ fn parse_decimal(s: &str) -> Result<Decimal>{
 
 fn parse_position(ticker: Option<String>, quantity: Option<&str>) -> Result<Option<Position>> {
     match (ticker, quantity) {
-        (Some(ticker), Some(q)) => Ok(Some(Position { ticker, quantity: parse_decimal(q)? })),
+        (Some(ticker), Some(q)) => Ok(Some(Position::new(ticker,parse_decimal(q)?))),
         _ => Ok(None),
     }
 }
