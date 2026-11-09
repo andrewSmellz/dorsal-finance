@@ -18,8 +18,8 @@ where
    
     Ok(txs.iter().fold(Decimal::ZERO, |bal,tx| 
     match tx.kind{
-        Deposit | Income | Sell | Dividend | Interest | TransferIn=> bal + tx.amount,
-        Withdrawal | Expense | Buy | TransferOut=> bal - tx.amount,
+        Deposit | Income | Sell | Dividend | Interest | TransferIn=> bal + tx.amount.value,
+        Withdrawal | Expense | Buy | TransferOut=> bal - tx.amount.value,
     }
     ))
 }

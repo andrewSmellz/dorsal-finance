@@ -33,17 +33,17 @@ where
     let mut map:BTreeMap<String, Holding> = BTreeMap::new();
 
     for tx in txs.iter(){
-        let (Some(ticker), Some(qty)) = (&tx.ticker, tx.quantity) else { continue };
+        let Some(position) = &tx.position else { continue };
         let holding = map
-                    .entry(ticker.to_string())
-                    .or_insert_with(|| Holding::new(ticker.to_string(), 
+                    .entry(position.ticker.to_string())
+                    .or_insert_with(|| Holding::new(position.ticker.to_string(), 
                     Decimal::ZERO, Decimal::ZERO));
         match tx.kind {
             Buy=> {
-                holding.apply_buy(qty, tx.amount);
+                holding.apply_buy(position.quantity, tx.amount.value);
             },
             Sell=>{
-                holding.apply_sell(qty)?;
+                holding.apply_sell(position.quantity)?;
             }
             _ =>{},
         }
