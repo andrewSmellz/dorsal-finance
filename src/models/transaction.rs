@@ -80,6 +80,11 @@ impl Money {
     }
 }
 
+impl Position{
+    pub fn new( ticker: String,quantity: Decimal,) -> Self{
+        Position { ticker, quantity }
+    }
+}
 
 impl Transaction {
     pub fn new(account_id: Uuid, kind: TransactionKind, amount: Money) -> Self {

@@ -59,16 +59,16 @@ pub async fn net_worth(pool: &SqlitePool, provider: &yahoo::YahooConnector, base
                 let rate = get_fx_rate(provider, *currency, base).await?;
                 let converted = amount * rate;
                 println!("  cash {} {} -> {} {} (rate {})", amount, currency, converted, base, rate);
-                networth += converted * rate;       
+                networth += converted;       
         }
         
         let holdings = account_holdings(pool, account.id).await?;
         for holding in &holdings{
-            println!("holding {} of quantity {}",holding.ticker,holding.quantity);
-            let (value,timestamp) = get_price_by_ticker(provider, holding.ticker.as_str()).await?; 
+            println!("holding {} of quantity {}",holding.position.ticker,holding.position.quantity);
+            let (value,timestamp) = get_price_by_ticker(provider, holding.position.ticker.as_str()).await?; 
 
-            println!("at {}, the price of {} was {}",timestamp, holding.ticker,value);
-            let total_value = holding.quantity * value;
+            println!("at {}, the price of {} was {}",timestamp, holding.position.ticker,value);
+            let total_value = holding.position.quantity * value;
             println!("total value {}", total_value);
             networth+=total_value;
         }

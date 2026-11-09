@@ -35,12 +35,11 @@ where
     for tx in &txs{
         let Some(position) = &tx.position else { continue };
         let holding = map
-                    .entry(position.ticker.to_string())
-                    .or_insert_with(|| Holding::new(position.ticker.to_string(), 
-                    Decimal::ZERO, Decimal::ZERO));
+            .entry(position.ticker.clone())
+            .or_insert_with(|| Holding::new(position.ticker.clone(), tx.amount.currency));
         match tx.kind {
             Buy=> {
-                holding.apply_buy(position.quantity, tx.amount.value);
+                holding.apply_buy(position.quantity, tx.amount)?;
             },
             Sell=>{
                 holding.apply_sell(position.quantity)?;
@@ -51,6 +50,6 @@ where
 
     Ok(map
     .into_values()
-    .filter(|h| h.quantity > Decimal::ZERO)
+    .filter(|h| h.position.quantity > Decimal::ZERO)
     .collect())
 }

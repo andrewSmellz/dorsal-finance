@@ -1,5 +1,6 @@
 use rust_decimal::Decimal;
 use thiserror::Error;
+use crate::models::Currency;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -29,4 +30,7 @@ pub enum Error {
 
     #[error("no usable price for {0}")]
     NoPrice(String),   
+
+    #[error("currency mismatch: expected {expected}, found {found}")]
+    CurrencyMismatch { expected: Currency, found: Currency},
 }
