@@ -20,13 +20,25 @@ pub async fn get_price_by_ticker(provider: &yahoo::YahooConnector, ticker: &str)
     let price = Decimal::from_f64(quote.close)
     .ok_or_else(|| Error::NoPrice(ticker.into()))?;
 
-    let currency = response
+    let raw = response
     .metadata()?
     .currency
-    .and_then(|c| c.parse::<Currency>().ok())
     .ok_or_else(|| Error::NoPrice(ticker.into()))?;
 
-    Ok((Money::new(price, currency), time))
+    // Yahoo quotes some markets in subunits; convert to the main currency
+    let (code, divisor) = match raw.as_str() {
+        "GBp" | "GBX" => ("GBP", Decimal::from(100)),   // UK pence
+        "ZAc"         => ("ZAR", Decimal::from(100)),   // South African cents
+        "ILA"         => ("ILS", Decimal::from(100)),   // Israeli agorot
+        other         => (other, Decimal::ONE),
+    };
+
+    let currency = code.parse::<Currency>().map_err(|_| Error::UnknownCurrency {
+        code: raw.clone(),
+        ticker: ticker.into(),
+    })?;
+
+    Ok((Money::new(price/divisor, currency), time))
 }
 
 pub async fn account_holdings<'e, E>(exec: E, account_id: Uuid) -> Result<Vec<Holding>>

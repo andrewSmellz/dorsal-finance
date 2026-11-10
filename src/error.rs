@@ -33,4 +33,7 @@ pub enum Error {
 
     #[error("currency mismatch: expected {expected}, found {found}")]
     CurrencyMismatch { expected: Currency, found: Currency},
+
+    #[error("unknown currency code {code} for {ticker}")]
+    UnknownCurrency { code: String, ticker: String },
 }
