@@ -4,7 +4,7 @@ use sqlx::SqlitePool;
 use std::collections::BTreeMap;
 
 use yahoo_finance_api as yahoo;
-use crate::error::Result;
+use crate::error::{Error,Result};
 
 use crate::models::{Currency, TransactionKind::*};
 use crate::queries::account::get_all_accounts;
@@ -39,13 +39,25 @@ where
 }
 
 
-pub async fn get_fx_rate(provider: &yahoo::YahooConnector, from:Currency, to:Currency)-> Result<Decimal>{
+async fn usd_rate(provider: &yahoo::YahooConnector, c: Currency) -> Result<Decimal> {
+    // how many `c` you get for 1 USD
+    if c == Currency::USD {
+        return Ok(Decimal::ONE);
+    }
+    let (price, _) = get_price_by_ticker(provider, &format!("USD{}=X", c)).await?;
+    Ok(price.value)
+}
+
+pub async fn get_fx_rate(provider: &yahoo::YahooConnector, from: Currency, to: Currency) -> Result<Decimal> {
     if from == to {
         return Ok(Decimal::ONE);
     }
-    let fx_ticker = format!("{}{}=X", from, to);
-    let (rate, _) = get_price_by_ticker(provider, &fx_ticker).await?;
-    Ok(rate.value)
+    let usd_to = usd_rate(provider, to).await?;
+    let usd_from = usd_rate(provider, from).await?;
+    if usd_from.is_zero() {
+        return Err(Error::NoPrice(format!("USD{}=X", from)));
+    }
+    Ok(usd_to / usd_from)
 }
 
 pub async fn net_worth(pool: &SqlitePool, provider: &yahoo::YahooConnector, base: Currency) -> Result<Decimal> {
