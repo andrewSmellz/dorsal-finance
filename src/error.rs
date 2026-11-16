@@ -39,4 +39,7 @@ pub enum Error {
 
     #[error("invalid transaction kind in database: {0}")]
     InvalidKind(String),
+
+    #[error("account {0} not found")]
+    AccountNotFound(uuid::Uuid),
 }

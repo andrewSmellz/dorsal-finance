@@ -15,7 +15,6 @@ CREATE TABLE transactions (
                   'buy','sell','dividend','interest',
                   'transfer_in','transfer_out','opening_balance')),
     category     TEXT,
-    subcategory  TEXT,
     amount       TEXT NOT NULL,
     currency     TEXT NOT NULL,
     ticker       TEXT,
@@ -25,10 +24,10 @@ CREATE TABLE transactions (
     note         TEXT,
 
     -- every expense or refund has a category, and nothing else does
-    CHECK ((kind IN ('expense','refund')) = (category IS NOT NULL)),
-    -- a subcategory only makes sense under a category
-    CHECK (subcategory IS NULL OR category IS NOT NULL)
+    CHECK ((kind IN ('expense','refund')) = (category IS NOT NULL))
 );
 
 CREATE INDEX idx_tx_account ON transactions(account_id, occurred_on);
 CREATE INDEX idx_tx_transfer ON transactions(transfer_id) WHERE transfer_id IS NOT NULL;
+-- an account can only have one opening balance per currency
+CREATE UNIQUE INDEX idx_one_opening ON transactions(account_id, currency) WHERE kind = 'opening_balance';

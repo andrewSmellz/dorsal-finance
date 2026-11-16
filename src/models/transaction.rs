@@ -37,7 +37,7 @@ pub enum TransactionKind{
     Expense(ExpenseCategory),
     Refund(ExpenseCategory),
     OpeningBalance,
-    
+
     Buy,
     Sell,
     Dividend,
@@ -64,8 +64,10 @@ pub enum ExpenseCategory{
     Phone,
     Insurance,
     HealthCare,
-    Grocery(GroceryKind),
-    Shopping(ShoppingKind),
+    Grocery,
+    Clothes,
+    HomeEssentials,
+    KitchenWare,
     Transportation,
     EatingOut,
     Entertainment,
@@ -73,22 +75,7 @@ pub enum ExpenseCategory{
     Gifts,
     Misc
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GroceryKind {
-    Meat,
-    Produce,
-    Dairy,
-    Carb,
-    JunkFood,
-    Alcohol,
-    Misc
-}
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ShoppingKind{
-    Clothes,
-    Electronics,
-    Misc,
-}
+
 
 impl CashKind{
     pub fn is_outflow(&self) -> bool{
