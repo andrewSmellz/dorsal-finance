@@ -36,6 +36,8 @@ pub enum TransactionKind{
     Income,
     Expense(ExpenseCategory),
     Refund(ExpenseCategory),
+    OpeningBalance,
+    
     Buy,
     Sell,
     Dividend,
@@ -154,6 +156,11 @@ impl Transaction {
 
     pub fn with_occurred_on(mut self, date: NaiveDate) -> Self {
         self.occurred_on = date;
+        self
+    }
+
+    pub fn with_transfer_id(mut self, transfer_id: Uuid) -> Self {
+        self.transfer_id = Some(transfer_id);
         self
     }
 }

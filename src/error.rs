@@ -36,4 +36,7 @@ pub enum Error {
 
     #[error("unknown currency code {code} for {ticker}")]
     UnknownCurrency { code: String, ticker: String },
+
+    #[error("invalid transaction kind in database: {0}")]
+    InvalidKind(String),
 }
