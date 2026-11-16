@@ -22,8 +22,8 @@ where
     for tx in &txs{
         let entry = balances.entry(tx.amount.currency).or_insert(Decimal::ZERO);
         match tx.kind {
-            Deposit | Income | Sell | Dividend | Interest | TransferIn => *entry += tx.amount.value,
-            Withdrawal | Expense | Buy | TransferOut => *entry -= tx.amount.value,
+            Deposit | Income | Refund(_) | Sell | Dividend | Interest | TransferIn => *entry += tx.amount.value,
+            Withdrawal | Expense(_) | Buy | TransferOut => *entry -= tx.amount.value,
         }
     }
     

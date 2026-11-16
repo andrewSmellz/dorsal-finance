@@ -15,6 +15,8 @@ pub enum AccountKind{
     Unregistered,
     Chequing,
     Saving,
+    CreditCard,
+    Loan,
 }
 
 impl Account{
@@ -24,5 +26,11 @@ impl Account{
             name,
             kind,
         }
+    }
+}
+
+impl AccountKind{
+    pub fn is_liability(&self) -> bool{
+        matches!(self, AccountKind::Loan | AccountKind::CreditCard)
     }
 }
