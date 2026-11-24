@@ -1,7 +1,7 @@
 use chrono::{DateTime, Local, NaiveDate, Utc};
 use uuid::Uuid;
 use rust_decimal::Decimal;
-use super::Currency;
+use super::{CategoryId, Currency};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Transaction {
@@ -9,6 +9,8 @@ pub struct Transaction {
     pub transfer_id: Option<Uuid>,
     pub account_id: Uuid,
     pub kind: TransactionKind,
+    /// Required for expense/refund, forbidden for everything else (enforced by cash_flow and a DB CHECK).
+    pub category: Option<CategoryId>,
     pub amount: Money,
     pub position: Option<Position>,
     pub occurred_on: NaiveDate,
@@ -29,13 +31,14 @@ pub struct Position  {
     pub quantity: Decimal,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(rename_all = "snake_case")]
 pub enum TransactionKind{
     Deposit,
     Withdrawal,
     Income,
-    Expense(ExpenseCategory),
-    Refund(ExpenseCategory),
+    Expense,
+    Refund,
     OpeningBalance,
 
     Buy,
@@ -51,35 +54,21 @@ pub enum CashKind{
     Deposit,
     Withdrawal,
     Income,
-    Expense(ExpenseCategory),
-    Refund(ExpenseCategory),
+    Expense,
+    Refund,
     Dividend,
     Interest,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExpenseCategory{
-    Housing,
-    Utilities,
-    Phone,
-    Insurance,
-    HealthCare,
-    Grocery,
-    Clothes,
-    HomeEssentials,
-    KitchenWare,
-    Transportation,
-    EatingOut,
-    Entertainment,
-    Hobbies,
-    Gifts,
-    Misc
 }
 
 
 impl CashKind{
     pub fn is_outflow(&self) -> bool{
-        matches!(self, CashKind::Withdrawal | CashKind::Expense(_))
+        matches!(self, CashKind::Withdrawal | CashKind::Expense)
+    }
+
+    /// Expenses and refunds need a category; nothing else may have one.
+    pub fn takes_category(&self) -> bool{
+        matches!(self, CashKind::Expense | CashKind::Refund)
     }
 }
 
@@ -89,8 +78,8 @@ impl From<CashKind> for TransactionKind {
             CashKind::Deposit => TransactionKind::Deposit,
             CashKind::Withdrawal => TransactionKind::Withdrawal,
             CashKind::Income => TransactionKind::Income,
-            CashKind::Expense(category) => TransactionKind::Expense(category),
-            CashKind::Refund(category) => TransactionKind::Refund(category),
+            CashKind::Expense => TransactionKind::Expense,
+            CashKind::Refund => TransactionKind::Refund,
             CashKind::Dividend => TransactionKind::Dividend,
             CashKind::Interest => TransactionKind::Interest,
         }
@@ -123,6 +112,7 @@ impl Transaction {
             transfer_id: None,
             account_id,
             kind,
+            category: None,
             amount,
             position: None,
             occurred_on: Local::now().date_naive(),
@@ -133,6 +123,11 @@ impl Transaction {
 
     pub fn with_note(mut self, note: impl Into<String>) -> Self {
         self.note = Some(note.into());
+        self
+    }
+
+    pub fn with_category(mut self, category: CategoryId) -> Self {
+        self.category = Some(category);
         self
     }
 

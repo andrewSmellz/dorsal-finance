@@ -42,4 +42,31 @@ pub enum Error {
 
     #[error("account {0} not found")]
     AccountNotFound(uuid::Uuid),
+
+    #[error("invalid category name: {0:?}")]
+    InvalidCategoryName(String),
+
+    #[error("category {0:?} already exists")]
+    DuplicateCategory(String),
+
+    #[error("expenses and refunds need a category")]
+    MissingCategory,
+
+    #[error("only expenses and refunds can have a category")]
+    UnexpectedCategory,
+
+    #[error("category {0} not found")]
+    CategoryNotFound(uuid::Uuid),
+
+    #[error("category {0} is archived")]
+    CategoryArchived(uuid::Uuid),
+
+    #[error("category {0} is used by transactions; archive it instead")]
+    CategoryInUse(uuid::Uuid),
+
+    #[error("category {0} has subcategories; delete or move them first")]
+    CategoryHasChildren(uuid::Uuid),
+
+    #[error("a category can't be moved under itself or one of its own subcategories")]
+    CategoryCycle,
 }
