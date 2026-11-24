@@ -27,10 +27,6 @@ pub fn validate_name(raw: &str) -> Result<String> {
     Ok(name.to_string())
 }
 
-/// "Food / Groceries" -> ["Food", "Groceries"]. Never returns an empty list.
-pub fn split_path(raw: &str) -> Result<Vec<String>> {
-    raw.split(CATEGORY_DELIMITER).map(validate_name).collect()
-}
 
 /// Builds "Food/Groceries" by walking up the parent chain.
 /// Pass the full list (including archived), or an archived ancestor makes this return None.

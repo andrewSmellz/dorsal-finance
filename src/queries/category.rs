@@ -2,7 +2,7 @@ use sqlx::SqlitePool;
 use uuid::Uuid;
 use crate::error::{Error, Result};
 use crate::models::{Category, CategoryId};
-use crate::models::category::{split_path, validate_name};
+use crate::models::category::validate_name;
 
 fn map_unique(e: sqlx::Error, name: &str) -> Error {
     match e {
@@ -39,48 +39,6 @@ pub async fn create_category(pool: &SqlitePool, parent: Option<CategoryId>, name
     Ok(category)
 }
 
-/// "Food/Groceries/Organic": finds or creates each level in turn and returns the last one.
-/// New levels can't be created under an archived parent.
-pub async fn get_or_create_path(pool: &SqlitePool, path: &str) -> Result<Category> {
-    let segments = split_path(path)?;
-    let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
-
-    let mut current: Option<Category> = None;
-    for name in segments {
-        let parent_id = current.as_ref().map(|c| c.id);
-
-        let existing = sqlx::query_as!(
-            Category,
-            r#"SELECT id as "id!: CategoryId",
-                      parent_id as "parent_id: CategoryId",
-                      name as "name!",
-                      archived as "archived!: bool"
-               FROM categories
-               WHERE parent_id IS ? AND name = ?"#,
-            parent_id,
-            name
-        )
-        .fetch_optional(&mut *tx)
-        .await?;
-
-        let next = match existing {
-            Some(c) => c,
-            None => {
-                if let Some(p) = &current {
-                    if p.archived {
-                        return Err(Error::CategoryArchived(p.id.0));
-                    }
-                }
-                insert_category(&mut *tx, parent_id, name).await?
-            }
-        };
-        current = Some(next);
-    }
-
-    tx.commit().await?;
-    // split_path never returns an empty list
-    Ok(current.expect("path has at least one segment"))
-}
 
 /// Flat list of every category; build the tree (or paths) from `parent_id`.
 pub async fn list_categories<'e, E>(exec: E, include_archived: bool) -> Result<Vec<Category>>
