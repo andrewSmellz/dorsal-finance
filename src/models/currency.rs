@@ -1,6 +1,8 @@
 use strum::{Display, EnumString};
 
-#[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Display, EnumString)]
+#[derive(
+    sqlx::Type, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Display, EnumString,
+)]
 pub enum Currency {
     // North America
     /// Canadian Dollar
@@ -57,7 +59,7 @@ pub enum Currency {
     // Western & Northern Europe
     /// Euro
     EUR,
-    /// Great British Pound 
+    /// Great British Pound
     GBP,
     /// Swiss Franc
     CHF,
@@ -234,4 +236,3 @@ pub enum Currency {
     /// Central African CFA Franc
     XAF,
 }
-

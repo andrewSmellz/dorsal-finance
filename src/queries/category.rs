@@ -1,32 +1,52 @@
+use crate::error::{Error, Result};
+use crate::models::category::validate_name;
+use crate::models::{Category, CategoryId};
 use sqlx::SqlitePool;
 use uuid::Uuid;
-use crate::error::{Error, Result};
-use crate::models::{Category, CategoryId};
-use crate::models::category::validate_name;
 
 fn map_unique(e: sqlx::Error, name: &str) -> Error {
     match e {
-        sqlx::Error::Database(ref d) if d.is_unique_violation() => Error::DuplicateCategory(name.to_string()),
+        sqlx::Error::Database(ref d) if d.is_unique_violation() => {
+            Error::DuplicateCategory(name.to_string())
+        }
         other => other.into(),
     }
 }
 
-async fn insert_category<'e, E>(exec: E, parent_id: Option<CategoryId>, name: String) -> Result<Category>
+async fn insert_category<'e, E>(
+    exec: E,
+    parent_id: Option<CategoryId>,
+    name: String,
+) -> Result<Category>
 where
     E: sqlx::Executor<'e, Database = sqlx::Sqlite>,
 {
     let id = CategoryId(Uuid::new_v4());
 
-    sqlx::query!("INSERT INTO categories (id, parent_id, name) VALUES (?, ?, ?)", id, parent_id, name)
-        .execute(exec)
-        .await
-        .map_err(|e| map_unique(e, &name))?;
+    sqlx::query!(
+        "INSERT INTO categories (id, parent_id, name) VALUES (?, ?, ?)",
+        id,
+        parent_id,
+        name
+    )
+    .execute(exec)
+    .await
+    .map_err(|e| map_unique(e, &name))?;
 
-    Ok(Category { id, parent_id, name, archived: false })
+    Ok(Category {
+        id,
+        parent_id,
+        name,
+        archived: false,
+    })
 }
 
 /// Creates one category under `parent` (None = top level). The parent must exist and be active.
-pub async fn create_category(pool: &SqlitePool, parent: Option<CategoryId>, name: &str) -> Result<Category> {
+pub async fn create_category(
+    pool: &SqlitePool,
+    parent: Option<CategoryId>,
+    name: &str,
+) -> Result<Category> {
     let name = validate_name(name)?;
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
 
@@ -38,7 +58,6 @@ pub async fn create_category(pool: &SqlitePool, parent: Option<CategoryId>, name
     tx.commit().await?;
     Ok(category)
 }
-
 
 /// Flat list of every category; build the tree (or paths) from `parent_id`.
 pub async fn list_categories<'e, E>(exec: E, include_archived: bool) -> Result<Vec<Category>>
@@ -75,7 +94,11 @@ pub async fn rename_category(pool: &SqlitePool, id: CategoryId, new_name: &str) 
 }
 
 /// Moves a category (and everything under it) to a new parent; None makes it top level.
-pub async fn move_category(pool: &SqlitePool, id: CategoryId, new_parent: Option<CategoryId>) -> Result<()> {
+pub async fn move_category(
+    pool: &SqlitePool,
+    id: CategoryId,
+    new_parent: Option<CategoryId>,
+) -> Result<()> {
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
 
     let name = sqlx::query_scalar!(r#"SELECT name as "name!" FROM categories WHERE id = ?"#, id)
@@ -104,10 +127,14 @@ pub async fn move_category(pool: &SqlitePool, id: CategoryId, new_parent: Option
         }
     }
 
-    sqlx::query!("UPDATE categories SET parent_id = ? WHERE id = ?", new_parent, id)
-        .execute(&mut *tx)
-        .await
-        .map_err(|e| map_unique(e, &name))?;
+    sqlx::query!(
+        "UPDATE categories SET parent_id = ? WHERE id = ?",
+        new_parent,
+        id
+    )
+    .execute(&mut *tx)
+    .await
+    .map_err(|e| map_unique(e, &name))?;
 
     tx.commit().await?;
     Ok(())
@@ -115,13 +142,20 @@ pub async fn move_category(pool: &SqlitePool, id: CategoryId, new_parent: Option
 
 /// Archiving also archives everything under it. Unarchiving only restores this one,
 /// and only if its parent is active.
-pub async fn set_category_archived(pool: &SqlitePool, id: CategoryId, archived: bool) -> Result<()> {
+pub async fn set_category_archived(
+    pool: &SqlitePool,
+    id: CategoryId,
+    archived: bool,
+) -> Result<()> {
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
 
-    let row = sqlx::query!(r#"SELECT parent_id as "parent_id: CategoryId" FROM categories WHERE id = ?"#, id)
-        .fetch_optional(&mut *tx)
-        .await?
-        .ok_or(Error::CategoryNotFound(id.0))?;
+    let row = sqlx::query!(
+        r#"SELECT parent_id as "parent_id: CategoryId" FROM categories WHERE id = ?"#,
+        id
+    )
+    .fetch_optional(&mut *tx)
+    .await?
+    .ok_or(Error::CategoryNotFound(id.0))?;
 
     if archived {
         sqlx::query!(
@@ -188,10 +222,13 @@ pub async fn ensure_category<'e, E>(exec: E, id: CategoryId, allow_archived: boo
 where
     E: sqlx::Executor<'e, Database = sqlx::Sqlite>,
 {
-    let archived = sqlx::query_scalar!(r#"SELECT archived as "archived!: bool" FROM categories WHERE id = ?"#, id)
-        .fetch_optional(exec)
-        .await?
-        .ok_or(Error::CategoryNotFound(id.0))?;
+    let archived = sqlx::query_scalar!(
+        r#"SELECT archived as "archived!: bool" FROM categories WHERE id = ?"#,
+        id
+    )
+    .fetch_optional(exec)
+    .await?
+    .ok_or(Error::CategoryNotFound(id.0))?;
 
     if archived && !allow_archived {
         return Err(Error::CategoryArchived(id.0));

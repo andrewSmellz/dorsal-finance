@@ -1,14 +1,14 @@
 use uuid::Uuid;
 
 #[derive(Debug, sqlx::FromRow)]
-pub struct Account{
+pub struct Account {
     pub id: Uuid,
     pub name: String,
     pub kind: AccountKind,
 }
 #[derive(Debug, sqlx::Type)]
 #[sqlx(rename_all = "lowercase")]
-pub enum AccountKind{
+pub enum AccountKind {
     TFSA,
     RRSP,
     FHSA,
@@ -19,9 +19,9 @@ pub enum AccountKind{
     Loan,
 }
 
-impl Account{
-    pub fn new(name: String, kind: AccountKind) -> Self{
-        Account{
+impl Account {
+    pub fn new(name: String, kind: AccountKind) -> Self {
+        Account {
             id: Uuid::new_v4(),
             name,
             kind,
@@ -29,8 +29,8 @@ impl Account{
     }
 }
 
-impl AccountKind{
-    pub fn is_liability(&self) -> bool{
+impl AccountKind {
+    pub fn is_liability(&self) -> bool {
         matches!(self, AccountKind::Loan | AccountKind::CreditCard)
     }
 }

@@ -1,5 +1,5 @@
-use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use sqlx::SqlitePool;
+use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use std::{str::FromStr, time::Duration};
 
 pub async fn connect(url: &str) -> Result<SqlitePool, sqlx::Error> {

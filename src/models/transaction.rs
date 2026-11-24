@@ -1,7 +1,7 @@
-use chrono::{DateTime, Local, NaiveDate, Utc};
-use uuid::Uuid;
-use rust_decimal::Decimal;
 use super::{CategoryId, Currency};
+use chrono::{DateTime, Local, NaiveDate, Utc};
+use rust_decimal::Decimal;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Transaction {
@@ -18,7 +18,6 @@ pub struct Transaction {
     pub note: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Money {
     pub value: Decimal,
@@ -26,14 +25,14 @@ pub struct Money {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Position  {
+pub struct Position {
     pub ticker: String,
     pub quantity: Decimal,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
 #[sqlx(rename_all = "snake_case")]
-pub enum TransactionKind{
+pub enum TransactionKind {
     Deposit,
     Withdrawal,
     Income,
@@ -50,7 +49,7 @@ pub enum TransactionKind{
     TransferIn,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CashKind{
+pub enum CashKind {
     Deposit,
     Withdrawal,
     Income,
@@ -60,14 +59,13 @@ pub enum CashKind{
     Interest,
 }
 
-
-impl CashKind{
-    pub fn is_outflow(&self) -> bool{
+impl CashKind {
+    pub fn is_outflow(&self) -> bool {
         matches!(self, CashKind::Withdrawal | CashKind::Expense)
     }
 
     /// Expenses and refunds need a category; nothing else may have one.
-    pub fn takes_category(&self) -> bool{
+    pub fn takes_category(&self) -> bool {
         matches!(self, CashKind::Expense | CashKind::Refund)
     }
 }
@@ -86,15 +84,14 @@ impl From<CashKind> for TransactionKind {
     }
 }
 
-
 impl Money {
     pub fn new(value: Decimal, currency: Currency) -> Self {
         Money { value, currency }
     }
 }
 
-impl Position{
-    pub fn new( ticker: String,quantity: Decimal,) -> Self{
+impl Position {
+    pub fn new(ticker: String, quantity: Decimal) -> Self {
         Position { ticker, quantity }
     }
 }

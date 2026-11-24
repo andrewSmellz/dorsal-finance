@@ -1,13 +1,17 @@
-use sqlx::SqlitePool;
-use crate::{models::{CashKind,CategoryId,Transaction,Money,Position, TransactionKind::{self, Buy, Sell, TransferIn, TransferOut}}, utils::balance::account_balance};
-use crate::queries::category::ensure_category;
-use uuid::Uuid;
-use rust_decimal::Decimal;
-use chrono::{DateTime, NaiveDate, Utc};
 use crate::error::{Error, Result};
 use crate::models::currency::Currency;
-
-
+use crate::queries::category::ensure_category;
+use crate::{
+    models::{
+        CashKind, CategoryId, Money, Position, Transaction,
+        TransactionKind::{self, Buy, Sell, TransferIn, TransferOut},
+    },
+    utils::balance::account_balance,
+};
+use chrono::{DateTime, NaiveDate, Utc};
+use rust_decimal::Decimal;
+use sqlx::SqlitePool;
+use uuid::Uuid;
 
 async fn make_transaction<'e, E>(exec: E, tx: Transaction) -> Result<()>
 where
@@ -31,19 +35,18 @@ where
     Ok(())
 }
 
-
-fn parse_decimal(s: &str) -> Result<Decimal>{
+fn parse_decimal(s: &str) -> Result<Decimal> {
     Ok(s.parse::<Decimal>()?)
 }
 
 fn parse_position(ticker: Option<String>, quantity: Option<&str>) -> Result<Option<Position>> {
     match (ticker, quantity) {
-        (Some(ticker), Some(q)) => Ok(Some(Position::new(ticker,parse_decimal(q)?))),
+        (Some(ticker), Some(q)) => Ok(Some(Position::new(ticker, parse_decimal(q)?))),
         _ => Ok(None),
     }
 }
 
-pub async fn list_transactions<'e, E>(exec: E, account_id:Uuid) -> Result<Vec<Transaction>>
+pub async fn list_transactions<'e, E>(exec: E, account_id: Uuid) -> Result<Vec<Transaction>>
 where
     E: sqlx::Executor<'e, Database = sqlx::Sqlite>,
 {
@@ -68,21 +71,22 @@ where
     .fetch_all(exec)
     .await?;
 
-    rows.into_iter().map(|t|{
-        Ok(Transaction{
-            id: t.id,
-            transfer_id: t.transfer_id,
-            account_id: t.account_id,
-            kind: t.kind,
-            category: t.category_id,
-            amount: Money::new(parse_decimal(&t.amount)?, t.currency),
-            position: parse_position(t.ticker, t.quantity.as_deref())?,
-            occurred_on: t.occurred_on,
-            created_at: t.created_at,
-            note: t.note,
+    rows.into_iter()
+        .map(|t| {
+            Ok(Transaction {
+                id: t.id,
+                transfer_id: t.transfer_id,
+                account_id: t.account_id,
+                kind: t.kind,
+                category: t.category_id,
+                amount: Money::new(parse_decimal(&t.amount)?, t.currency),
+                position: parse_position(t.ticker, t.quantity.as_deref())?,
+                occurred_on: t.occurred_on,
+                created_at: t.created_at,
+                note: t.note,
+            })
         })
-
-    }).collect()
+        .collect()
 }
 
 pub async fn list_all_transactions<'e, E>(exec: E) -> Result<Vec<Transaction>>
@@ -109,25 +113,25 @@ where
     .fetch_all(exec)
     .await?;
 
-    rows.into_iter().map(|t|{
-        Ok(Transaction{
-            id: t.id,
-            transfer_id: t.transfer_id,
-            account_id: t.account_id,
-            kind: t.kind,
-            category: t.category_id,
-            amount: Money::new(parse_decimal(&t.amount)?, t.currency),
-            position: parse_position(t.ticker, t.quantity.as_deref())?,
-            occurred_on: t.occurred_on,
-            created_at: t.created_at,
-            note: t.note,
+    rows.into_iter()
+        .map(|t| {
+            Ok(Transaction {
+                id: t.id,
+                transfer_id: t.transfer_id,
+                account_id: t.account_id,
+                kind: t.kind,
+                category: t.category_id,
+                amount: Money::new(parse_decimal(&t.amount)?, t.currency),
+                position: parse_position(t.ticker, t.quantity.as_deref())?,
+                occurred_on: t.occurred_on,
+                created_at: t.created_at,
+                note: t.note,
+            })
         })
-
-    }).collect()
+        .collect()
 }
 
-
-pub async fn transfer(pool: &SqlitePool, from: Uuid, to: Uuid, amount:Money) -> Result<()>{
+pub async fn transfer(pool: &SqlitePool, from: Uuid, to: Uuid, amount: Money) -> Result<()> {
     if to == from {
         return Err(Error::SameAccount);
     }
@@ -137,7 +141,7 @@ pub async fn transfer(pool: &SqlitePool, from: Uuid, to: Uuid, amount:Money) -> 
 
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
 
-    if account_balance(&mut *tx, from,amount.currency).await? < amount.value{
+    if account_balance(&mut *tx, from, amount.currency).await? < amount.value {
         return Err(Error::InsufficientFunds);
     }
 
@@ -152,10 +156,15 @@ pub async fn transfer(pool: &SqlitePool, from: Uuid, to: Uuid, amount:Money) -> 
     Ok(())
 }
 
-pub async fn cash_flow(pool: &SqlitePool, account_id:Uuid, kind: CashKind, category: Option<CategoryId>, amount:Money, note: Option<&str>)
--> Result<()>
-{
-    if amount.value <= Decimal::ZERO{
+pub async fn cash_flow(
+    pool: &SqlitePool,
+    account_id: Uuid,
+    kind: CashKind,
+    category: Option<CategoryId>,
+    amount: Money,
+    note: Option<&str>,
+) -> Result<()> {
+    if amount.value <= Decimal::ZERO {
         return Err(Error::InvalidAmount);
     }
 
@@ -172,7 +181,9 @@ pub async fn cash_flow(pool: &SqlitePool, account_id:Uuid, kind: CashKind, categ
         ensure_category(&mut *tx, c, matches!(kind, CashKind::Refund)).await?;
     }
 
-    if kind.is_outflow() && account_balance(&mut *tx, account_id, amount.currency).await? < amount.value{
+    if kind.is_outflow()
+        && account_balance(&mut *tx, account_id, amount.currency).await? < amount.value
+    {
         return Err(Error::InsufficientFunds);
     }
 
@@ -188,21 +199,27 @@ pub async fn cash_flow(pool: &SqlitePool, account_id:Uuid, kind: CashKind, categ
     Ok(())
 }
 
-pub async fn buy(pool: &SqlitePool, account_id: Uuid, position: Position, total_cost: Money) -> Result<()> {
+pub async fn buy(
+    pool: &SqlitePool,
+    account_id: Uuid,
+    position: Position,
+    total_cost: Money,
+) -> Result<()> {
     if position.quantity <= Decimal::ZERO {
         return Err(Error::InvalidAmount);
     }
     if total_cost.value <= Decimal::ZERO {
         return Err(Error::InvalidAmount);
     }
- 
+
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
- 
+
     if account_balance(&mut *tx, account_id, total_cost.currency).await? < total_cost.value {
         return Err(Error::InsufficientFunds);
     }
- 
-    let t = Transaction::new(account_id, Buy, total_cost).with_position(position.ticker,position.quantity);
+
+    let t = Transaction::new(account_id, Buy, total_cost)
+        .with_position(position.ticker, position.quantity);
     make_transaction(&mut *tx, t).await?;
     tx.commit().await?;
     Ok(())
@@ -224,23 +241,28 @@ where
 
     let mut held = Decimal::ZERO;
 
-    for row in rows.iter(){
+    for row in rows.iter() {
         let quantity = parse_decimal(
-        row.quantity
-        .as_deref()
-        .ok_or_else(|| sqlx::Error::Protocol("buy/sell row missing quantity".into()))?,
-        )?;   
+            row.quantity
+                .as_deref()
+                .ok_or_else(|| sqlx::Error::Protocol("buy/sell row missing quantity".into()))?,
+        )?;
 
         match row.kind {
             Buy => held += quantity,
             Sell => held -= quantity,
             _ => {}
-        } 
+        }
     }
     Ok(held)
 }
 
-pub async fn sell(pool: &SqlitePool, account_id: Uuid, position: Position, total_return: Money) -> Result<()> {
+pub async fn sell(
+    pool: &SqlitePool,
+    account_id: Uuid,
+    position: Position,
+    total_return: Money,
+) -> Result<()> {
     if position.quantity <= Decimal::ZERO {
         return Err(Error::InvalidAmount);
     }
@@ -251,11 +273,16 @@ pub async fn sell(pool: &SqlitePool, account_id: Uuid, position: Position, total
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
 
     let held = held_quantity(&mut *tx, account_id, &position.ticker).await?;
-    if  held < position.quantity {
-        return Err(Error::InsufficientShares { ticker: position.ticker.into(), requested: position.quantity, held: held});
+    if held < position.quantity {
+        return Err(Error::InsufficientShares {
+            ticker: position.ticker.into(),
+            requested: position.quantity,
+            held: held,
+        });
     }
 
-    let t = Transaction::new(account_id, Sell, total_return).with_position(position.ticker, position.quantity);
+    let t = Transaction::new(account_id, Sell, total_return)
+        .with_position(position.ticker, position.quantity);
     make_transaction(&mut *tx, t).await?;
     tx.commit().await?;
     Ok(())

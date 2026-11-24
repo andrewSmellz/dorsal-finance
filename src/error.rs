@@ -1,6 +1,6 @@
+use crate::models::Currency;
 use rust_decimal::Decimal;
 use thiserror::Error;
-use crate::models::Currency;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -20,7 +20,11 @@ pub enum Error {
     InsufficientFunds,
 
     #[error("cannot sell {requested} of {ticker}, only {held} held")]
-    InsufficientShares { ticker: String, requested: Decimal, held: Decimal },
+    InsufficientShares {
+        ticker: String,
+        requested: Decimal,
+        held: Decimal,
+    },
 
     #[error("amount must be greater than zero")]
     InvalidAmount,
@@ -29,10 +33,10 @@ pub enum Error {
     SameAccount,
 
     #[error("no usable price for {0}")]
-    NoPrice(String),   
+    NoPrice(String),
 
     #[error("currency mismatch: expected {expected}, found {found}")]
-    CurrencyMismatch { expected: Currency, found: Currency},
+    CurrencyMismatch { expected: Currency, found: Currency },
 
     #[error("unknown currency code {code} for {ticker}")]
     UnknownCurrency { code: String, ticker: String },

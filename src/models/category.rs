@@ -1,5 +1,5 @@
-use uuid::Uuid;
 use crate::error::{Error, Result};
+use uuid::Uuid;
 
 /// Only used to write and display paths like "Food/Groceries". Names themselves can't contain it.
 pub const CATEGORY_DELIMITER: char = '/';
@@ -26,7 +26,6 @@ pub fn validate_name(raw: &str) -> Result<String> {
     }
     Ok(name.to_string())
 }
-
 
 /// Builds "Food/Groceries" by walking up the parent chain.
 /// Pass the full list (including archived), or an archived ancestor makes this return None.
