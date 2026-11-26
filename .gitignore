@@ -2,3 +2,8 @@
 *.db*
 
 *.env
+
+#jetbrains stuff
+.idea/
+*.iml
+*.iws
