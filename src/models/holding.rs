@@ -3,6 +3,8 @@ use crate::{
     models::{Currency, Money, Position},
 };
 use rust_decimal::Decimal;
+use std::sync::Arc;
+
 #[derive(Debug)]
 pub struct Holding {
     pub position: Position,
@@ -10,7 +12,7 @@ pub struct Holding {
 }
 
 impl Holding {
-    pub fn new(ticker: String, currency: Currency) -> Self {
+    pub fn new(ticker: Arc<str>, currency: Currency) -> Self {
         Holding {
             position: Position::new(ticker, Decimal::ZERO),
             cost_basis: Money::new(Decimal::ZERO, currency),
@@ -35,7 +37,7 @@ impl Holding {
         }
         if quantity > self.position.quantity {
             return Err(Error::InsufficientShares {
-                ticker: self.position.ticker.clone(),
+                ticker: Arc::clone(&self.position.ticker),
                 requested: quantity,
                 held: self.position.quantity,
             });

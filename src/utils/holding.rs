@@ -9,6 +9,7 @@ use std::collections::BTreeMap;
 use time::OffsetDateTime;
 use uuid::Uuid;
 use yahoo_finance_api as yahoo;
+use std::sync::Arc;
 
 pub async fn get_price_by_ticker(
     provider: &yahoo::YahooConnector,
@@ -53,15 +54,15 @@ where
 
     //key is ticker, the value is the total holdings of that ticket
     //loop through all the transactions and calculate how many of whatever ticker fund is owned
-    let mut map: BTreeMap<String, Holding> = BTreeMap::new();
+    let mut map: BTreeMap<Arc<str>, Holding> = BTreeMap::new();
 
     for tx in &txs {
         let Some(position) = &tx.position else {
             continue;
         };
         let holding = map
-            .entry(position.ticker.clone())
-            .or_insert_with(|| Holding::new(position.ticker.clone(), tx.amount.currency));
+            .entry(Arc::clone(&position.ticker))
+            .or_insert_with(|| Holding::new(Arc::clone(&position.ticker), tx.amount.currency));
         match tx.kind {
             Buy => {
                 holding.apply_buy(position.quantity, tx.amount)?;

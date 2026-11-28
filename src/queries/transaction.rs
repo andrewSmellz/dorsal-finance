@@ -6,12 +6,15 @@ use crate::{
         CashKind, CategoryId, Money, Position, Transaction,
         TransactionKind::{self, Buy, Sell, TransferIn, TransferOut},
     },
-    utils::balance::account_balance,
+    utils::balance::{account_balance},
+    utils::holding::get_price_by_ticker,
 };
 use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use sqlx::SqlitePool;
 use uuid::Uuid;
+use yahoo_finance_api as yahoo;
+use std::sync::Arc;
 
 async fn make_transaction<'e, E>(exec: E, tx: Transaction) -> Result<()>
 where
@@ -201,6 +204,7 @@ pub async fn cash_flow(
 
 pub async fn buy(
     pool: &SqlitePool,
+    provider: &yahoo::YahooConnector,
     account_id: Uuid,
     position: Position,
     total_cost: Money,
@@ -212,6 +216,28 @@ pub async fn buy(
         return Err(Error::InvalidAmount);
     }
 
+    // reuse the currency from an earlier buy; only ask Yahoo for a new ticker
+    let maybe_cached_currency = sqlx::query_scalar!(
+        r#"SELECT currency as "currency!: Currency"
+           FROM transactions
+           WHERE ticker = ? AND kind = 'buy'
+           LIMIT 1"#,
+        position.ticker
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    let listing = match maybe_cached_currency {
+        Some(currency) => currency,
+        None => get_price_by_ticker(provider, &position.ticker).await?.0.currency,
+    };
+    if listing != total_cost.currency {
+        return Err(Error::CurrencyMismatch {
+            expected: listing,
+            found: total_cost.currency,
+        });
+    }
+
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
 
     if account_balance(&mut *tx, account_id, total_cost.currency).await? < total_cost.value {
@@ -219,7 +245,7 @@ pub async fn buy(
     }
 
     let t = Transaction::new(account_id, Buy, total_cost)
-        .with_position(position.ticker, position.quantity);
+        .with_position(Arc::clone(position.ticker), position.quantity);
     make_transaction(&mut *tx, t).await?;
     tx.commit().await?;
     Ok(())
@@ -275,9 +301,9 @@ pub async fn sell(
     let held = held_quantity(&mut *tx, account_id, &position.ticker).await?;
     if held < position.quantity {
         return Err(Error::InsufficientShares {
-            ticker: position.ticker.into(),
+            ticker: position.ticker,
             requested: position.quantity,
-            held: held,
+            held,
         });
     }
 

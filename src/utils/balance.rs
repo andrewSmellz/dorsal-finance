@@ -99,7 +99,7 @@ pub async fn net_worth(
             );
 
             let (price, timestamp) =
-                get_price_by_ticker(provider, holding.position.ticker.as_str()).await?;
+                get_price_by_ticker(provider, holding.position.ticker.as_ref()).await?;
             println!(
                 "at {}, the price of {} was {} {}",
                 timestamp, holding.position.ticker, price.value, price.currency

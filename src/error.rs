@@ -1,6 +1,7 @@
 use crate::models::Currency;
 use rust_decimal::Decimal;
 use thiserror::Error;
+use std::sync::Arc;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -21,7 +22,7 @@ pub enum Error {
 
     #[error("cannot sell {requested} of {ticker}, only {held} held")]
     InsufficientShares {
-        ticker: String,
+        ticker: Arc<str>,
         requested: Decimal,
         held: Decimal,
     },

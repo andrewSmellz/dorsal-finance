@@ -2,6 +2,7 @@ use super::{CategoryId, Currency};
 use chrono::{DateTime, Local, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use uuid::Uuid;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Transaction {
@@ -26,7 +27,7 @@ pub struct Money {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Position {
-    pub ticker: String,
+    pub ticker: Arc<str>,
     pub quantity: Decimal,
 }
 
@@ -92,7 +93,10 @@ impl Money {
 
 impl Position {
     pub fn new(ticker: String, quantity: Decimal) -> Self {
-        Position { ticker, quantity }
+        Position { 
+            ticker:ticker.trim().to_uppercase().into(), 
+            quantity 
+        }
     }
 }
 
