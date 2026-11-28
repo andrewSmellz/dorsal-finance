@@ -1,7 +1,7 @@
 use crate::models::Currency;
 use rust_decimal::Decimal;
-use thiserror::Error;
 use std::sync::Arc;
+use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
 

@@ -6,10 +6,10 @@ use crate::queries::transaction::list_transactions;
 use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
 use std::collections::BTreeMap;
+use std::sync::Arc;
 use time::OffsetDateTime;
 use uuid::Uuid;
 use yahoo_finance_api as yahoo;
-use std::sync::Arc;
 
 pub async fn get_price_by_ticker(
     provider: &yahoo::YahooConnector,

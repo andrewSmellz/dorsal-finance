@@ -1,8 +1,8 @@
 use super::{CategoryId, Currency};
 use chrono::{DateTime, Local, NaiveDate, Utc};
 use rust_decimal::Decimal;
-use uuid::Uuid;
 use std::sync::Arc;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Transaction {
@@ -92,10 +92,10 @@ impl Money {
 }
 
 impl Position {
-    pub fn new(ticker: String, quantity: Decimal) -> Self {
-        Position { 
-            ticker:ticker.trim().to_uppercase().into(), 
-            quantity 
+    pub fn new(ticker: impl AsRef<str>, quantity: Decimal) -> Self {
+        Position {
+            ticker: ticker.as_ref().trim().to_uppercase().into(),
+            quantity,
         }
     }
 }
@@ -132,8 +132,8 @@ impl Transaction {
         self
     }
 
-    pub fn with_position(mut self, ticker: impl Into<String>, quantity: Decimal) -> Self {
-        self.position = Some(Position::new(ticker.into(), quantity));
+    pub fn with_position(mut self, position: Position) -> Self {
+        self.position = Some(position);
         self
     }
 

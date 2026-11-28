@@ -6,7 +6,7 @@ use crate::{
         CashKind, CategoryId, Money, Position, Transaction,
         TransactionKind::{self, Buy, Sell, TransferIn, TransferOut},
     },
-    utils::balance::{account_balance},
+    utils::balance::account_balance,
     utils::holding::get_price_by_ticker,
 };
 use chrono::{DateTime, NaiveDate, Utc};
@@ -14,7 +14,6 @@ use rust_decimal::Decimal;
 use sqlx::SqlitePool;
 use uuid::Uuid;
 use yahoo_finance_api as yahoo;
-use std::sync::Arc;
 
 async fn make_transaction<'e, E>(exec: E, tx: Transaction) -> Result<()>
 where
@@ -23,7 +22,7 @@ where
     let amount = tx.amount.value.to_string();
     let currency = tx.amount.currency.to_string();
 
-    let ticker = tx.position.as_ref().map(|p| p.ticker.as_str());
+    let ticker = tx.position.as_ref().map(|p| &*p.ticker);
     let quantity = tx.position.as_ref().map(|p| p.quantity.to_string());
 
     sqlx::query!("
@@ -216,20 +215,27 @@ pub async fn buy(
         return Err(Error::InvalidAmount);
     }
 
+    let ticker: &str = &position.ticker;
+
     // reuse the currency from an earlier buy; only ask Yahoo for a new ticker
     let maybe_cached_currency = sqlx::query_scalar!(
         r#"SELECT currency as "currency!: Currency"
            FROM transactions
            WHERE ticker = ? AND kind = 'buy'
            LIMIT 1"#,
-        position.ticker
+        ticker
     )
     .fetch_optional(pool)
     .await?;
 
     let listing = match maybe_cached_currency {
         Some(currency) => currency,
-        None => get_price_by_ticker(provider, &position.ticker).await?.0.currency,
+        None => {
+            get_price_by_ticker(provider, &position.ticker)
+                .await?
+                .0
+                .currency
+        }
     };
     if listing != total_cost.currency {
         return Err(Error::CurrencyMismatch {
@@ -244,8 +250,7 @@ pub async fn buy(
         return Err(Error::InsufficientFunds);
     }
 
-    let t = Transaction::new(account_id, Buy, total_cost)
-        .with_position(Arc::clone(position.ticker), position.quantity);
+    let t = Transaction::new(account_id, Buy, total_cost).with_position(position);
     make_transaction(&mut *tx, t).await?;
     tx.commit().await?;
     Ok(())
@@ -307,8 +312,7 @@ pub async fn sell(
         });
     }
 
-    let t = Transaction::new(account_id, Sell, total_return)
-        .with_position(position.ticker, position.quantity);
+    let t = Transaction::new(account_id, Sell, total_return).with_position(position);
     make_transaction(&mut *tx, t).await?;
     tx.commit().await?;
     Ok(())
