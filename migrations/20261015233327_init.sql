@@ -3,7 +3,8 @@ CREATE TABLE accounts (
     name  TEXT NOT NULL UNIQUE,
     kind  TEXT NOT NULL CHECK (kind IN
           ('tfsa','rrsp','fhsa','unregistered','chequing','saving',
-           'creditcard','loan','receivable'))--as of 11/16/2026 the receivable account is not implemented
+           'creditcard','loan','receivable')),--as of 11/16/2026 the receivable account is not implemented
+    allow_negative INTEGER NOT NULL DEFAULT 0 CHECK (allow_negative IN (0, 1))
 );
 
 -- a tree: parent_id is NULL for top-level categories

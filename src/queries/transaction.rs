@@ -1,5 +1,6 @@
 use crate::error::{Error, Result};
 use crate::models::currency::Currency;
+use crate::queries::account::get_account_by_id;
 use crate::queries::category::ensure_category;
 use crate::{
     models::{
@@ -46,6 +47,22 @@ fn parse_position(ticker: Option<String>, quantity: Option<&str>) -> Result<Opti
         (Some(ticker), Some(q)) => Ok(Some(Position::new(ticker, parse_decimal(q)?))),
         _ => Ok(None),
     }
+}
+
+async fn ensure_funds(
+    connection: &mut sqlx::SqliteConnection,
+    account_id: Uuid,
+    amount: Money,
+) -> Result<()> {
+    let account = get_account_by_id(&mut *connection, account_id)
+        .await?
+        .ok_or(Error::AccountNotFound(account_id))?;
+    if !account.allow_negative
+        && account_balance(connection, account_id, amount.currency).await? < amount.value
+    {
+        return Err(Error::InsufficientFunds);
+    }
+    Ok(())
 }
 
 pub async fn list_transactions<'e, E>(exec: E, account_id: Uuid) -> Result<Vec<Transaction>>
@@ -143,9 +160,7 @@ pub async fn transfer(pool: &SqlitePool, from: Uuid, to: Uuid, amount: Money) ->
 
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
 
-    if account_balance(&mut *tx, from, amount.currency).await? < amount.value {
-        return Err(Error::InsufficientFunds);
-    }
+    ensure_funds(&mut tx, from, amount).await?;
 
     let transfer_id = Uuid::new_v4();
     let from_tx = Transaction::new(from, TransferOut, amount).with_transfer_id(transfer_id);
@@ -183,10 +198,8 @@ pub async fn cash_flow(
         ensure_category(&mut *tx, c, matches!(kind, CashKind::Refund)).await?;
     }
 
-    if kind.is_outflow()
-        && account_balance(&mut *tx, account_id, amount.currency).await? < amount.value
-    {
-        return Err(Error::InsufficientFunds);
+    if kind.is_outflow() {
+        ensure_funds(&mut tx, account_id, amount).await?;
     }
 
     let mut t = Transaction::new(account_id, kind.into(), amount);
@@ -217,7 +230,7 @@ pub async fn buy(
 
     let ticker: &str = &position.ticker;
 
-    // reuse the currency from an earlier buy; only ask Yahoo for a new ticker
+    // only look up the currency if its not known
     let maybe_cached_currency = sqlx::query_scalar!(
         r#"SELECT currency as "currency!: Currency"
            FROM transactions
@@ -246,9 +259,7 @@ pub async fn buy(
 
     let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
 
-    if account_balance(&mut *tx, account_id, total_cost.currency).await? < total_cost.value {
-        return Err(Error::InsufficientFunds);
-    }
+    ensure_funds(&mut tx, account_id, total_cost).await?;
 
     let t = Transaction::new(account_id, Buy, total_cost).with_position(position);
     make_transaction(&mut *tx, t).await?;

@@ -5,10 +5,11 @@ use uuid::Uuid;
 
 pub async fn make_account(pool: &SqlitePool, account: Account) -> Result<()> {
     sqlx::query!(
-        "INSERT INTO accounts (id, name, kind) VALUES (?, ?, ?)",
+        "INSERT INTO accounts (id, name, kind, allow_negative) VALUES (?, ?, ?, ?)",
         account.id,
         account.name,
-        account.kind
+        account.kind,
+        account.allow_negative,
     )
     .execute(pool)
     .await?;
@@ -25,7 +26,8 @@ pub async fn get_account_by_name(
         Account,
         r#"SELECT id as "id!: Uuid",
      name as "name!",
-     kind as "kind!: AccountKind"
+     kind as "kind!: AccountKind",
+     allow_negative as "allow_negative!: bool"
      FROM accounts WHERE name = ?"#,
         account_name
     )
@@ -34,16 +36,20 @@ pub async fn get_account_by_name(
 }
 
 //QUERIES SHOULD BE DONE VIA ID AND NOT ACCOUNT NAME
-pub async fn get_account_by_id(pool: &SqlitePool, account_id: Uuid) -> Result<Option<Account>> {
+pub async fn get_account_by_id<'e, E>(exec: E, account_id: Uuid) -> Result<Option<Account>>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Sqlite>,
+{
     Ok(sqlx::query_as!(
         Account,
         r#"SELECT id as "id!: Uuid",
      name as "name!",
-     kind as "kind!: AccountKind"
+     kind as "kind!: AccountKind",
+     allow_negative as "allow_negative!: bool"
      FROM accounts WHERE id = ?"#,
         account_id
     )
-    .fetch_optional(pool)
+    .fetch_optional(exec)
     .await?)
 }
 
@@ -55,7 +61,8 @@ where
         Account,
         r#"SELECT id as "id!: Uuid",
             name as "name!",
-            kind as "kind!: AccountKind"
+            kind as "kind!: AccountKind",
+            allow_negative as "allow_negative!: bool"
             FROM accounts
         "#
     )
